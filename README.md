@@ -1,6 +1,6 @@
 ## Moneyger
 
-Self-onboarding guide for new contributors. For deep product/architecture notes, see `.docs/overview.md`. For container setup details, see `.docs/mny-1_project-setup.md`.
+Self-onboarding guide for new contributors. For deep product/architecture notes, see `.docs/overview.md`.
 
 ### What is this?
 - Rails 8 monolith with Hotwire (Turbo + Stimulus)

@@ -14,9 +14,13 @@ This document captures the implementation details to run the entire Rails app wi
 - Assets precompiled in the image (via `Dockerfile`)
 
 ### New/Updated Files
-- `docker-compose.yml`: Defines `web` and `db` services.
+- `docker-compose.yml`: Defines `web` and `db` services, healthchecks, volumes.
 - `docker/postgres/init.sql`: Creates the four production DBs (ownership defaults to the role created by the Postgres image using `POSTGRES_USER`).
 - `example.env` (copy to `.env`): Template for required secrets and DB password.
+- `config/routes.rb`: Root route redirects to `/up` to avoid a 404 on fresh boot.
+- `config/application.rb`: Sets `config.time_zone = "Asia/Manila"` and default locale `:en`.
+- `config/environments/development.rb`: Configures `letter_opener_web` for dev email.
+- `.docs/repo-governance.md`: Branching, CODEOWNERS, templates, Dependabot.
 
 ### Prerequisites
 - Docker Engine 24+ and Docker Compose plugin (`docker compose` CLI).
@@ -24,7 +28,7 @@ This document captures the implementation details to run the entire Rails app wi
 ### Environment Variables
 Provide these via a `.env` file in the repo root (copy from `example.env`).
 - `RAILS_MASTER_KEY`: Rails credentials master key.
-- `MONEYGER_DATABASE_PASSWORD`: Password assigned to the `moneyger` Postgres role.
+- `MONEYGER_DATABASE_PASSWORD`: Password assigned to the `POSTGRES_USER` role.
 - Optional overrides (usually fine as-is):
   - `PORT` (defaults to `3000`), `RAILS_LOG_TO_STDOUT`, `RAILS_SERVE_STATIC_FILES`, `SOLID_QUEUE_IN_PUMA`.
 
@@ -42,6 +46,7 @@ Provide these via a `.env` file in the repo root (copy from `example.env`).
    - Runs Solid Queue in-Puma via `SOLID_QUEUE_IN_PUMA=1`.
    - Stores Active Storage files on named volume `storage` mounted at `/rails/storage`.
    - Healthcheck targets Rails `/up` (Rails default health endpoint).
+   - Root route redirects to `/up` until a real homepage is added.
 
 ### First Run
 1) Copy the env template and fill in values:
@@ -123,6 +128,9 @@ docker compose exec -e PGPASSWORD=$MONEYGER_DATABASE_PASSWORD db \
 - Missing assets or JS/CSS changes not visible:
   - The image precompiles assets at build time; rebuild (`docker compose build web`).
 
+- Dev emails not opening:
+  - Visit `/letter_opener` in development to view sent emails.
+
 ### Development Overrides (Optional)
 For a dev experience with live JS/CSS rebuilds and code mounts, add a `docker-compose.override.yml` that:
 - sets `RAILS_ENV=development`, mounts the app dir, and runs `Procfile.dev` processes.
@@ -132,6 +140,53 @@ For a dev experience with live JS/CSS rebuilds and code mounts, add a `docker-co
 - Use production `Dockerfile` to match deployable behavior and avoid drift.
 - Use libpq env (`PGHOST`, `PGUSER`, `PGPASSWORD`) so Rails picks up Postgres without editing `database.yml`.
 - Provision all four production DBs to support Solid Cache, Solid Queue, and Solid Cable in production mode.
+ - Avoid 404 on `/` by default with a root redirect to `/up`.
+
+
+## Repo Governance
+
+This document defines lightweight conventions so contributors can self-serve.
+
+### Branching & PRs
+- Default branch: `main`
+- Create feature branches `feat/...`, fixes `fix/...`, chores `chore/...`
+- Small PRs with a clear summary and test plan
+- CI must pass before merge
+
+### Code Ownership
+- Add a `CODEOWNERS` file to request reviews automatically (example):
+```
+*       @ronnoche
+docs/** @ronnoche
+```
+
+### PR & Issue Templates
+- Add `.github/PULL_REQUEST_TEMPLATE.md` with: Summary, Changes, Test Plan, Risk
+- Add issue templates for bug and feature requests
+
+### Dependency Updates
+- Enable Dependabot for Bundler, Yarn, and GitHub Actions via `.github/dependabot.yml` (example):
+```
+version: 2
+updates:
+  - package-ecosystem: "bundler"
+    directory: "/"
+    schedule: { interval: "weekly" }
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule: { interval: "weekly" }
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule: { interval: "weekly" }
+```
+
+### Quality Gates
+- CI runs: tests, RuboCop, Brakeman
+- Local shorthand: `bin/quality`
+
+### Security & Secrets
+- Never commit secrets; `.env` is gitignored
+- Rotate tokens on role changes
 
 
 ---
