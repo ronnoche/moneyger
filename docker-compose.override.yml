@@ -1,0 +1,19 @@
+services:
+  web:
+    build:
+      context: .
+      target: build
+    environment:
+      RAILS_ENV: development
+      RACK_ENV: development
+      BUNDLE_WITHOUT: ""
+      PORT: "3000"
+      RAILS_LOG_TO_STDOUT: "1"
+      PGHOST: db
+      PGUSER: moneyger
+      PGPASSWORD: ${MONEYGER_DATABASE_PASSWORD}
+    command: bash -lc "yarn install --check-files && ./bin/dev"
+    volumes:
+      - .:/rails:cached
+      - storage:/rails/storage
+
