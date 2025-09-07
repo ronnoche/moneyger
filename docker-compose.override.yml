@@ -1,19 +1,30 @@
+# Override for development
 services:
   web:
     build:
       context: .
-      target: build
+      dockerfile: Dockerfile.dev
+    env_file:
+      - .env.local
     environment:
       RAILS_ENV: development
       RACK_ENV: development
       BUNDLE_WITHOUT: ""
-      PORT: "3000"
-      RAILS_LOG_TO_STDOUT: "1"
       PGHOST: db
       PGUSER: moneyger
-      PGPASSWORD: ${MONEYGER_DATABASE_PASSWORD}
-    command: bash -lc "yarn install --check-files && ./bin/dev"
+      PGPASSWORD: ${MONEYGER_DATABASE_PASSWORD:-password}
+      PGPORT: 5432
+      DATABASE_URL: postgresql://moneyger:${MONEYGER_DATABASE_PASSWORD:-password}@db:5432/moneyger_development
+      SECRET_KEY_BASE: b26d7d89fe3491b270dc4c91991ca9d188521cd333807c9d5da0026e1391907b
     volumes:
-      - .:/rails:cached
+      - .:/rails
+      - /rails/tmp
+      - /rails/log
       - storage:/rails/storage
 
+  db:
+    environment:
+      POSTGRES_DB: moneyger_development
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-dev.sql:/docker-entrypoint-initdb.d/00-init.sql:ro

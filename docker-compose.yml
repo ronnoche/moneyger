@@ -23,17 +23,16 @@ services:
     env_file:
       - .env
     environment:
-      RAILS_ENV: production
-      RACK_ENV: production
-      BUNDLE_WITHOUT: development
+      RAILS_ENV: ${RAILS_ENV:-production}
+      RACK_ENV: ${RAILS_ENV:-production}
+      BUNDLE_WITHOUT: ${BUNDLE_WITHOUT:-development}
       PORT: "3000"
       BINDING: 0.0.0.0
       RAILS_LOG_TO_STDOUT: "1"
       RAILS_SERVE_STATIC_FILES: "1"
-      PGHOST: db
-      PGUSER: moneyger
-      PGPASSWORD: ${MONEYGER_DATABASE_PASSWORD}
+      DATABASE_URL: postgresql://moneyger:${MONEYGER_DATABASE_PASSWORD}@db:5432/moneyger_production
       SOLID_QUEUE_IN_PUMA: "1"
+    command: ["./bin/rails", "server", "-b", "0.0.0.0", "-p", "3000"]
     volumes:
       - storage:/rails/storage
     ports:
