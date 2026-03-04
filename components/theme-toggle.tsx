@@ -22,9 +22,13 @@ const applyTheme = (theme: ThemeName) => {
 };
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<ThemeName>(() => getPreferredTheme());
+  const [theme, setTheme] = useState<ThemeName>('light');
 
   useEffect(() => {
+    const initial = getPreferredTheme();
+    setTheme(initial);
+    applyTheme(initial);
+
     const onStorage = (event: StorageEvent) => {
       if (event.key === 'moneyger-theme' && (event.newValue === 'light' || event.newValue === 'dark')) {
         setTheme(event.newValue);
@@ -35,10 +39,6 @@ export function ThemeToggle() {
       window.removeEventListener('storage', onStorage);
     };
   }, []);
-
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
 
   return (
     <Button

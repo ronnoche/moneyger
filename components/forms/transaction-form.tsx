@@ -34,7 +34,7 @@ export function TransactionForm({ mode, transactionId, initial }: Props) {
   const [saving, setSaving] = useState(false);
   const [values, setValues] = useState<TransactionFormValues>({
     transaction_amount: initial?.transaction_amount ?? '0.00',
-    transaction_date: initial?.transaction_date ?? new Date().toISOString().slice(0, 10),
+    transaction_date: initial?.transaction_date ?? '',
     account_id: initial?.account_id ?? '',
     budget_id: initial?.budget_id ?? '',
     payee_name: initial?.payee_name ?? '',
@@ -65,6 +65,15 @@ export function TransactionForm({ mode, transactionId, initial }: Props) {
         setError('Failed to load form options');
       });
   }, []);
+
+  useEffect(() => {
+    if (!initial?.transaction_date) {
+      setValues((previous) => ({
+        ...previous,
+        transaction_date: previous.transaction_date || new Date().toISOString().slice(0, 10),
+      }));
+    }
+  }, [initial?.transaction_date]);
 
   const submit = async () => {
     setSaving(true);

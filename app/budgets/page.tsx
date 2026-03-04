@@ -27,7 +27,7 @@ interface BudgetsResponse {
 
 export default function BudgetsPage() {
   const searchParams = useSearchParams();
-  const month = searchParams.get('month') ?? format(new Date(), 'yyyy-MM-01');
+  const month = searchParams.get('month') ?? format(new Date(1970, 0, 1), 'yyyy-MM-01');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showSeedPrompt, setShowSeedPrompt] = useState(false);
