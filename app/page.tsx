@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/options';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { Card } from '@/components/ui';
 
 export default async function HomePage() {
@@ -13,18 +12,14 @@ export default async function HomePage() {
 
   return (
     <div className="mx-auto mt-8 max-w-5xl space-y-6 md:mt-14">
-      <div className="flex justify-end">
-        <ThemeToggle />
-      </div>
-
       <Card className="space-y-6 px-6 py-8 md:px-10 md:py-12">
         <div className="space-y-4">
           <p className="inline-flex rounded-full border border-surface-border bg-brand-soft px-3 py-1 text-xs font-semibold uppercase tracking-wide text-foreground">
-            Personal finance cockpit
+            Simple envelope-style budgeting
           </p>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl">Take control of your finances</h1>
+          <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl">Give every dollar a job with Moneyger</h1>
           <p className="max-w-3xl text-base text-muted-foreground md:text-lg">
-            Moneyger keeps bucket budgeting simple with monthly planning, clean cash flow tracking, and account clarity in one place.
+            Moneyger is a YNAB-lite budget: envelope-style buckets, a clear plan for this month&apos;s money, and a calm view of what you can safely spend right now.
           </p>
         </div>
 
@@ -46,16 +41,22 @@ export default async function HomePage() {
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card dense>
-          <h2 className="text-base font-semibold text-foreground">Buckets first</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Assign each dollar to a purpose and track available balance by bucket.</p>
+          <h2 className="text-base font-semibold text-foreground">Buckets like envelopes</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Give every dollar a job in simple buckets so you always know what is set aside for bills, goals, and day-to-day spending.
+          </p>
         </Card>
         <Card dense>
-          <h2 className="text-base font-semibold text-foreground">Month planning</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Carry momentum month to month with fast reassignment and progress signals.</p>
+          <h2 className="text-base font-semibold text-foreground">One month at a time</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Plan the month you are in, roll with real life, and adjust buckets without losing sight of what still needs to be covered.
+          </p>
         </Card>
         <Card dense>
-          <h2 className="text-base font-semibold text-foreground">Private ownership</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Your data stays in your own Google Sheet, powered by a lightweight UI layer.</p>
+          <h2 className="text-base font-semibold text-foreground">Your sheet, your data</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Moneyger lives on top of your own Google Sheet, so you keep full ownership, easy exports, and a transparent source of truth.
+          </p>
         </Card>
       </div>
     </div>
