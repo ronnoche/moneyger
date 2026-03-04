@@ -25,6 +25,11 @@ const SunIcon = (props: IconProps) => (
   <svg
     aria-hidden="true"
     viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     {...props}
   >
     <circle cx="12" cy="12" r="4" />
@@ -36,6 +41,11 @@ const MoonIcon = (props: IconProps) => (
   <svg
     aria-hidden="true"
     viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     {...props}
   >
     <path d="M21 12.79A7.5 7.5 0 0 1 12.21 4 5.5 5.5 0 1 0 21 12.79Z" />

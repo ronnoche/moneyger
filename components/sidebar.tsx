@@ -50,7 +50,6 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
     <aside className={clsx('glass flex h-full w-full max-w-80 flex-col p-4 md:p-5', className)}>
       <div className="mb-5 flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold tracking-tight text-foreground">Moneyger</h1>
-        <ThemeToggle />
       </div>
 
       <nav className="mb-5 grid gap-1.5">
@@ -99,17 +98,22 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
         </section>
       </div>
 
-      <div className="mt-auto border-t border-surface-border pt-4 text-sm text-foreground">
-        <p className="truncate">{data?.user?.email}</p>
-        <Button
-          className="mt-3 w-full"
-          onClick={() => signOut({ callbackUrl: '/' })}
-          size="sm"
-          type="button"
-          variant="danger"
-        >
-          Sign out
-        </Button>
+      <div className="mt-auto">
+        <div className="mb-4 flex justify-end">
+          <ThemeToggle />
+        </div>
+        <div className="border-t border-surface-border pt-4 text-sm text-foreground">
+          <p className="truncate">{data?.user?.email}</p>
+          <Button
+            className="mt-3 w-full"
+            onClick={() => signOut({ callbackUrl: '/' })}
+            size="sm"
+            type="button"
+            variant="danger"
+          >
+            Sign out
+          </Button>
+        </div>
       </div>
     </aside>
   );
