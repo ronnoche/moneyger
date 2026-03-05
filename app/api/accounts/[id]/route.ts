@@ -12,7 +12,6 @@ export async function GET(_: Request, context: Params) {
   try {
     const { id } = await context.params;
     const { clients, sheetId } = await getAuthedContext();
-    await ensureSchemaUpToDate(clients.sheets, sheetId);
     const snapshot = await readSnapshot(clients.sheets, sheetId);
     const account = snapshot.accounts.find((item) => item.id === id);
     if (!account) {

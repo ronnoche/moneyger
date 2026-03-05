@@ -6,7 +6,6 @@ import { ensureSchemaUpToDate } from '@/lib/services/metadataService';
 export async function GET() {
   try {
     const { clients, sheetId } = await getAuthedContext();
-    await ensureSchemaUpToDate(clients.sheets, sheetId);
     const accounts = await listAccounts(clients.sheets, sheetId);
     return Response.json({ accounts });
   } catch (error) {
