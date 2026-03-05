@@ -22,7 +22,7 @@ interface SidebarProps {
 }
 
 const navigation = [
-  { href: '/budgets', label: 'Budgets' },
+  { href: '/budgets', label: 'Buckets' },
   { href: '/cashflow', label: 'Cash Flow' },
   { href: '/transactions', label: 'Transactions' },
   { href: '/accounts', label: 'Accounts' },

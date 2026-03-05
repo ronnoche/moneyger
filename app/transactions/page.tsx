@@ -15,7 +15,7 @@ interface Transaction {
   payee_name: string;
   annotate: string;
   transaction_amount: string;
-  budget_name: string;
+  bucket_list_name: string;
 }
 
 interface OptionItem {
@@ -25,43 +25,43 @@ interface OptionItem {
 
 export default function TransactionsPage() {
   const [accountId, setAccountId] = useState('');
-  const [budgetId, setBudgetId] = useState('');
+  const [bucketListId, setBucketListId] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<OptionItem[]>([]);
-  const [budgets, setBudgets] = useState<OptionItem[]>([]);
+  const [bucketLists, setBucketLists] = useState<OptionItem[]>([]);
 
   useEffect(() => {
-    Promise.all([fetch('/api/accounts'), fetch('/api/budgets')])
-      .then(async ([accountsResponse, budgetsResponse]) => {
+    Promise.all([fetch('/api/accounts'), fetch('/api/bucket-lists')])
+      .then(async ([accountsResponse, bucketListsResponse]) => {
         const accountsResult = await accountsResponse.json();
-        const budgetsResult = await budgetsResponse.json();
+        const bucketListsResult = await bucketListsResponse.json();
         setAccounts(
           (accountsResult.accounts ?? []).map((item: { id: string; account_name: string }) => ({
             id: item.id,
             label: item.account_name,
           })),
         );
-        setBudgets(
-          (budgetsResult.budgets ?? []).map((item: { id: string; budget_name: string }) => ({
+        setBucketLists(
+          (bucketListsResult.bucket_lists ?? []).map((item: { id: string; name: string }) => ({
             id: item.id,
-            label: item.budget_name,
+            label: item.name,
           })),
         );
       })
       .catch(() => {
         setAccounts([]);
-        setBudgets([]);
+        setBucketLists([]);
       });
   }, []);
 
   useEffect(() => {
     const params = new URLSearchParams();
     if (accountId) params.set('accountId', accountId);
-    if (budgetId) params.set('budgetId', budgetId);
+    if (bucketListId) params.set('bucketListId', bucketListId);
     if (startDate && endDate) {
       params.set('startDate', startDate);
       params.set('endDate', endDate);
@@ -75,7 +75,7 @@ export default function TransactionsPage() {
         setError(fetchError.message);
       })
       .finally(() => setLoading(false));
-  }, [accountId, budgetId, startDate, endDate]);
+  }, [accountId, bucketListId, startDate, endDate]);
 
   return (
     <div className="space-y-4">
@@ -107,17 +107,17 @@ export default function TransactionsPage() {
             ))}
           </Select>
           <Select
-            value={budgetId}
+            value={bucketListId}
             onChange={(event) => {
               setLoading(true);
               setError('');
-              setBudgetId(event.target.value);
+              setBucketListId(event.target.value);
             }}
           >
-            <option value="">All budgets</option>
-            {budgets.map((budget) => (
-              <option key={budget.id} value={budget.id}>
-                {budget.label}
+            <option value="">All bucket lists</option>
+            {bucketLists.map((bucketList) => (
+              <option key={bucketList.id} value={bucketList.id}>
+                {bucketList.label}
               </option>
             ))}
           </Select>

@@ -24,7 +24,7 @@ describe('budget workspace metrics', () => {
         transaction_date: '2026-03-15',
         annotate: '',
         account_id: '1',
-        budget_id: 'cat-1',
+        bucket_list_id: 'cat-1',
         payee_id: '1',
         created_at: '2026-03-15T00:00:00.000Z',
         updated_at: '2026-03-15T00:00:00.000Z',
@@ -38,5 +38,5 @@ describe('budget workspace metrics', () => {
     expect(result.activityTotal).toBe(-100);
     expect(result.availableTotal).toBe(400);
   });
-}
+});
 

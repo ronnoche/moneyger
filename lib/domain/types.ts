@@ -81,7 +81,7 @@ export interface Transaction extends RowEntity {
   transaction_date: string;
   annotate: string;
   account_id: string;
-  budget_id: string;
+  bucket_list_id: string;
   payee_id: string;
   created_at: string;
   updated_at: string;

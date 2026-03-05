@@ -1,7 +1,7 @@
 const STATIC_CACHE = 'moneyger-static-v1';
 const API_CACHE = 'moneyger-api-v1';
 const STATIC_ASSETS = ['/', '/manifest.json'];
-const API_PREFIXES = ['/api/budgets', '/api/accounts', '/api/transactions', '/api/cashflow', '/api/payees'];
+const API_PREFIXES = ['/api/budgets', '/api/bucket-lists', '/api/accounts', '/api/transactions', '/api/cashflow', '/api/payees'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(STATIC_CACHE).then((cache) => cache.addAll(STATIC_ASSETS)));

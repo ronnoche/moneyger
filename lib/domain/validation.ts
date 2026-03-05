@@ -45,7 +45,7 @@ export const transactionInputSchema = z.object({
   transaction_amount: z.coerce.number(),
   transaction_date: z.string().min(1, 'transaction_date is required'),
   account_id: z.string().min(1, 'account_id is required'),
-  budget_id: z.string().min(1, 'budget_id is required'),
+  bucket_list_id: z.string().min(1, 'bucket_list_id is required'),
   payee_name: z.string().trim().min(1, 'payee_name is required'),
   annotate: z.string().optional().nullable(),
 });

@@ -26,7 +26,7 @@ export default function EditBudgetPage() {
   }, [id]);
 
   if (!budget) {
-    return <LoadingState label="Loading budget..." />;
+    return <LoadingState label="Loading bucket list..." />;
   }
 
   return (

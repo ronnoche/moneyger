@@ -1,7 +1,6 @@
 import { getAuthedContext } from '@/lib/api/auth';
 import { toErrorResponse } from '@/lib/api/errors';
-import { readSnapshot } from '@/lib/google/sheets-store';
-import { deleteBudget, updateBudget } from '@/lib/services/budgetsService';
+import { deleteBudget, getBudgetById, updateBudget } from '@/lib/services/budgetsService';
 import { ensureSchemaUpToDate } from '@/lib/services/metadataService';
 
 interface Params {
@@ -13,8 +12,7 @@ export async function GET(_: Request, context: Params) {
     const { id } = await context.params;
     const { clients, sheetId } = await getAuthedContext();
     await ensureSchemaUpToDate(clients.sheets, sheetId);
-    const snapshot = await readSnapshot(clients.sheets, sheetId);
-    const budget = snapshot.budgets.find((item) => item.id === id);
+    const budget = await getBudgetById(clients.sheets, sheetId, id);
     if (!budget) {
       return Response.json({ error: { message: 'Budget not found' } }, { status: 404 });
     }

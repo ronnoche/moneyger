@@ -76,7 +76,7 @@ describe('domain metrics', () => {
           transaction_date: '2026-03-10',
           annotate: '',
           account_id: '1',
-          budget_id: '1',
+          bucket_list_id: '1',
           payee_id: '1',
           created_at: '2026-03-10T00:00:00.000Z',
           updated_at: '2026-03-10T00:00:00.000Z',
@@ -97,7 +97,7 @@ describe('validation', () => {
       transaction_amount: 100,
       transaction_date: '2026-03-01',
       account_id: '1',
-      budget_id: '1',
+      bucket_list_id: '1',
       payee_name: 'Store',
     });
     expect(parsed.success).toBe(true);

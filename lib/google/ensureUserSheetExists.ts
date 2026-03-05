@@ -70,7 +70,7 @@ const initializeMetadataRows = async (spreadsheetId: string, tokens: TokenSet) =
 export const seedSheetData = async (spreadsheetId: string, tokens: TokenSet) => {
   const { sheets } = getGoogleClients(tokens);
   const snapshot = await readSnapshot(sheets, spreadsheetId);
-  if (snapshot.accounts.length > 0 || snapshot.budgets.length > 0 || snapshot.payees.length > 0) {
+  if (snapshot.accounts.length > 0 || snapshot.categories.length > 0 || snapshot.payees.length > 0) {
     return;
   }
 
@@ -89,20 +89,15 @@ export const seedSheetData = async (spreadsheetId: string, tokens: TokenSet) => 
     ]);
   }
 
+  await appendRow(sheets, spreadsheetId, SHEET_TABS.categoryGroups, ['1', 'General', '1', now, now]);
+
   for (const [index, budgetName] of seedBudgets.entries()) {
-    await appendRow(sheets, spreadsheetId, SHEET_TABS.budgets, [
+    await appendRow(sheets, spreadsheetId, SHEET_TABS.categories, [
       String(index + 1),
+      '1',
       budgetName,
-      'savings',
       '',
-      '',
-      '',
-      '0.00',
-      '',
-      'false',
-      '',
-      '',
-      '',
+      String(index + 1),
       now,
       now,
     ]);

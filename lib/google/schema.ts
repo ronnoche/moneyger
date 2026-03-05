@@ -1,4 +1,4 @@
-export const CURRENT_SCHEMA_VERSION = '2';
+export const CURRENT_SCHEMA_VERSION = '3';
 
 export const SHEET_TABS = {
   accounts: 'Accounts',
@@ -46,7 +46,7 @@ export const SHEET_HEADERS: Record<string, string[]> = {
     'transaction_date',
     'annotate',
     'account_id',
-    'budget_id',
+    'bucket_list_id',
     'payee_id',
     'created_at',
     'updated_at',

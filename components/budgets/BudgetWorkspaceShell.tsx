@@ -103,10 +103,10 @@ export function BudgetWorkspaceShell() {
         description="Assign every peso a job and keep categories on track."
         actions={
           <Link className={buttonClassName({ variant: 'primary' })} href="/budgets/new">
-            Manage Buckets
+            Manage Bucket Lists
           </Link>
         }
-        title="Budget"
+        title="Buckets"
       >
         <div className="grid gap-4 md:grid-cols-[1fr_auto]">
           <MonthNavigator />

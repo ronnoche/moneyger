@@ -10,12 +10,8 @@ import type {
 } from '@/lib/domain/types';
 import { isDateWithin, monthBounds, parseAmount, previousMonthBounds } from '@/lib/domain/utils';
 
-export const accountAvailableBalance = (account: Account, accountBudgets: AccountBudget[]): number => {
-  const allocated = accountBudgets
-    .filter((allocation) => allocation.account_id === account.id)
-    .reduce((sum, allocation) => sum + parseAmount(allocation.allocated_amount), 0);
-
-  return parseAmount(account.account_balance) - allocated;
+export const accountAvailableBalance = (account: Account): number => {
+  return parseAmount(account.account_balance);
 };
 
 export const buildCashFlow = (accounts: Account[]): UserCashFlow => {
@@ -48,7 +44,7 @@ export const buildBudgetsIndex = (
       .reduce((sum, allocation) => sum + parseAmount(allocation.allocated_amount), 0);
 
     const monthly_activity = transactions
-      .filter((txn) => txn.budget_id === budget.id && isDateWithin(txn.transaction_date, start, end))
+      .filter((txn) => txn.bucket_list_id === budget.id && isDateWithin(txn.transaction_date, start, end))
       .reduce((sum, txn) => sum + parseAmount(txn.transaction_amount), 0);
 
     return {

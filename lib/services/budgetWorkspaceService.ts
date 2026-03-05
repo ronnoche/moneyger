@@ -71,7 +71,7 @@ const buildWorkspace = (
 
   const transactionsByCategory = new Map<string, number>();
   snapshot.transactions.forEach((txn) => {
-    const key = txn.budget_id || ''; // Legacy link; will align with category_id after migration.
+    const key = txn.bucket_list_id || '';
     if (!key) return;
     const current = transactionsByCategory.get(key) ?? 0;
     transactionsByCategory.set(key, current + parseAmount(txn.transaction_amount));

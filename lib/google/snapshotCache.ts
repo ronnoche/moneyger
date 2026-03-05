@@ -1,9 +1,8 @@
 import type { sheets_v4 } from 'googleapis';
 import type { SheetsSnapshot } from '@/lib/domain/types';
 import {
-  parseAccountBudgets,
   parseAccounts,
-  parseBudgets,
+  parseCategories,
   parsePayees,
   parseTransactions,
 } from '@/lib/google/mappers';
@@ -18,8 +17,8 @@ type CacheEntry<T> = {
 
 const CACHE_TTL_MS = 5000;
 
-type AccountsSnapshot = Pick<SheetsSnapshot, 'accounts' | 'accountBudgets'>;
-type TransactionsSnapshot = Pick<SheetsSnapshot, 'transactions' | 'accounts' | 'budgets' | 'payees'>;
+type AccountsSnapshot = Pick<SheetsSnapshot, 'accounts'>;
+type TransactionsSnapshot = Pick<SheetsSnapshot, 'transactions' | 'accounts' | 'categories' | 'payees'>;
 
 const fullSnapshotCache = new Map<string, CacheEntry<SheetsSnapshot>>();
 const accountsSnapshotCache = new Map<string, CacheEntry<AccountsSnapshot>>();
@@ -55,12 +54,11 @@ const loadAccountsSnapshot = async (
   sheets: sheets_v4.Sheets,
   sheetId: string,
 ): Promise<AccountsSnapshot> => {
-  const ranges = [`${SHEET_TABS.accounts}!A:ZZ`, `${SHEET_TABS.accountBudgets}!A:ZZ`];
+  const ranges = [`${SHEET_TABS.accounts}!A:ZZ`];
   const valueRanges = await batchGetRanges(sheets, sheetId, ranges);
 
   return {
     accounts: parseAccounts(valueRanges[0]?.values as string[][] | undefined),
-    accountBudgets: parseAccountBudgets(valueRanges[1]?.values as string[][] | undefined),
   };
 };
 
@@ -78,7 +76,7 @@ const loadTransactionsSnapshot = async (
   const ranges = [
     `${SHEET_TABS.transactions}!A:ZZ`,
     `${SHEET_TABS.accounts}!A:ZZ`,
-    `${SHEET_TABS.budgets}!A:ZZ`,
+    `${SHEET_TABS.categories}!A:ZZ`,
     `${SHEET_TABS.payees}!A:ZZ`,
   ];
   const valueRanges = await batchGetRanges(sheets, sheetId, ranges);
@@ -86,7 +84,7 @@ const loadTransactionsSnapshot = async (
   return {
     transactions: parseTransactions(valueRanges[0]?.values as string[][] | undefined),
     accounts: parseAccounts(valueRanges[1]?.values as string[][] | undefined),
-    budgets: parseBudgets(valueRanges[2]?.values as string[][] | undefined),
+    categories: parseCategories(valueRanges[2]?.values as string[][] | undefined),
     payees: parsePayees(valueRanges[3]?.values as string[][] | undefined),
   };
 };

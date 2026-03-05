@@ -12,7 +12,7 @@ import { findOrCreatePayee } from '@/lib/services/payeesService';
 
 interface TransactionFilters {
   accountId?: string | null;
-  budgetId?: string | null;
+  bucketListId?: string | null;
   startDate?: string | null;
   endDate?: string | null;
 }
@@ -28,8 +28,8 @@ export const listTransactions = async (
   if (filters.accountId) {
     transactions = transactions.filter((txn) => txn.account_id === filters.accountId);
   }
-  if (filters.budgetId) {
-    transactions = transactions.filter((txn) => txn.budget_id === filters.budgetId);
+  if (filters.bucketListId) {
+    transactions = transactions.filter((txn) => txn.bucket_list_id === filters.bucketListId);
   }
   if (filters.startDate && filters.endDate) {
     transactions = transactions.filter(
@@ -41,12 +41,12 @@ export const listTransactions = async (
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .map((txn) => {
       const account = snapshot.accounts.find((item) => item.id === txn.account_id);
-      const budget = snapshot.budgets.find((item) => item.id === txn.budget_id);
+      const bucketList = snapshot.categories.find((item) => item.id === txn.bucket_list_id);
       const payee = snapshot.payees.find((item) => item.id === txn.payee_id);
       return {
         ...txn,
         account_name: account?.account_name ?? '',
-        budget_name: budget?.budget_name ?? '',
+        bucket_list_name: bucketList?.name ?? '',
         payee_name: payee?.name ?? '',
       };
     });
@@ -68,9 +68,9 @@ export const createTransaction = async (sheets: sheets_v4.Sheets, sheetId: strin
   if (!account) {
     throw new ApiError(400, 'account_id not found');
   }
-  const budget = snapshot.budgets.find((item) => item.id === parsed.data.budget_id);
-  if (!budget) {
-    throw new ApiError(400, 'budget_id not found');
+  const bucketList = snapshot.categories.find((item) => item.id === parsed.data.bucket_list_id);
+  if (!bucketList) {
+    throw new ApiError(400, 'bucket_list_id not found');
   }
 
   const payee = await findOrCreatePayee(sheets, sheetId, parsed.data.payee_name);
@@ -81,7 +81,7 @@ export const createTransaction = async (sheets: sheets_v4.Sheets, sheetId: strin
     transaction_date: parsed.data.transaction_date,
     annotate: parsed.data.annotate ?? '',
     account_id: account.id,
-    budget_id: budget.id,
+    bucket_list_id: bucketList.id,
     payee_id: payee.id,
     created_at: now,
     updated_at: now,
@@ -137,9 +137,9 @@ export const updateTransaction = async (
   if (!account) {
     throw new ApiError(400, 'account_id not found');
   }
-  const budget = snapshot.budgets.find((item) => item.id === parsed.data.budget_id);
-  if (!budget) {
-    throw new ApiError(400, 'budget_id not found');
+  const bucketList = snapshot.categories.find((item) => item.id === parsed.data.bucket_list_id);
+  if (!bucketList) {
+    throw new ApiError(400, 'bucket_list_id not found');
   }
   const payee = await findOrCreatePayee(sheets, sheetId, parsed.data.payee_name);
   const now = nowIso();
@@ -175,7 +175,7 @@ export const updateTransaction = async (
     transaction_date: parsed.data.transaction_date,
     annotate: parsed.data.annotate ?? '',
     account_id: account.id,
-    budget_id: budget.id,
+    bucket_list_id: bucketList.id,
     payee_id: payee.id,
     updated_at: now,
   };

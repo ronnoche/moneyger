@@ -6,14 +6,15 @@ import { createTransaction, listTransactions } from '@/lib/services/transactions
 export async function GET(request: Request) {
   try {
     const { clients, sheetId } = await getAuthedContext();
+    await ensureSchemaUpToDate(clients.sheets, sheetId);
     const { searchParams } = new URL(request.url);
     const accountId = searchParams.get('accountId');
-    const budgetId = searchParams.get('budgetId');
+    const bucketListId = searchParams.get('bucketListId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const transactions = await listTransactions(clients.sheets, sheetId, {
       accountId,
-      budgetId,
+      bucketListId,
       startDate,
       endDate,
     });

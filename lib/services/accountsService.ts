@@ -14,7 +14,7 @@ export const listAccounts = async (sheets: sheets_v4.Sheets, sheetId: string) =>
   const snapshot = await getCachedAccountsSnapshot(sheets, sheetId);
   return snapshot.accounts.map((account) => ({
     ...account,
-    available_balance: accountAvailableBalance(account, snapshot.accountBudgets).toFixed(2),
+    available_balance: accountAvailableBalance(account).toFixed(2),
   }));
 };
 
@@ -97,9 +97,8 @@ export const deleteAccount = async (sheets: sheets_v4.Sheets, sheetId: string, a
   }
 
   const inUseByTransactions = snapshot.transactions.some((txn) => txn.account_id === accountId);
-  const inUseByAllocations = snapshot.accountBudgets.some((allocation) => allocation.account_id === accountId);
-  if (inUseByTransactions || inUseByAllocations) {
-    throw new ApiError(400, 'Cannot delete account with related transactions or allocations');
+  if (inUseByTransactions) {
+    throw new ApiError(400, 'Cannot delete wallet with related transactions');
   }
 
   await deleteEntityRow(sheets, sheetId, SHEET_TABS.accounts, existing);

@@ -9,7 +9,7 @@ interface TransactionRecord {
   transaction_amount: string;
   transaction_date: string;
   account_id: string;
-  budget_id: string;
+  bucket_list_id: string;
   payee_name: string;
   annotate: string;
 }
@@ -36,7 +36,7 @@ export default function EditTransactionPage() {
         transaction_amount: transaction.transaction_amount,
         transaction_date: transaction.transaction_date,
         account_id: transaction.account_id,
-        budget_id: transaction.budget_id,
+        bucket_list_id: transaction.bucket_list_id,
         payee_name: transaction.payee_name,
         annotate: transaction.annotate,
       }}

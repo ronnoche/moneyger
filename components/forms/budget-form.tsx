@@ -73,15 +73,15 @@ export function BudgetForm({ mode, budgetId, initial }: Props) {
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <PageHeader
-        description={mode === 'create' ? 'Create a bucket and define its target plan.' : 'Update bucket planning and cadence.'}
-        title={mode === 'create' ? 'New Budget' : 'Edit Budget'}
+        description={mode === 'create' ? 'Create a bucket list and define its target plan.' : 'Update bucket list planning and cadence.'}
+        title={mode === 'create' ? 'New Bucket List' : 'Edit Bucket List'}
       />
 
       <Card className="mx-auto max-w-xl space-y-4">
         {error ? <p className="rounded-[var(--radius-sm)] border border-danger px-3 py-2 text-sm text-danger">{error}</p> : null}
 
         <label className="space-y-1 text-sm">
-          <span className="font-medium text-muted-foreground">Bucket Name</span>
+          <span className="font-medium text-muted-foreground">Bucket List Name</span>
           <Input value={values.budget_name} onChange={(event) => setValues((previous) => ({ ...previous, budget_name: event.target.value }))} />
         </label>
 

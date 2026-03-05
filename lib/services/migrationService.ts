@@ -1,4 +1,5 @@
 import type { sheets_v4 } from 'googleapis';
+import { updateRow } from '@/lib/google/client';
 import { SHEET_TABS } from '@/lib/google/schema';
 import { appendRow } from '@/lib/google/client';
 import { readSnapshot } from '@/lib/google/sheets-store';
@@ -6,11 +7,12 @@ import type {
   AccountBudget,
   Budget,
   Category,
-  CategoryAssignment,
   CategoryGoal,
   CategoryGroup,
   SheetsSnapshot,
 } from '@/lib/domain/types';
+import { SHEET_HEADERS } from '@/lib/google/schema';
+import { toRowValues } from '@/lib/services/helpers';
 
 interface MigrationReport {
   fromVersion: string;
@@ -75,6 +77,11 @@ export const runMigrations = async (
   fromVersion: string,
   toVersion: string,
 ): Promise<MigrationReport | null> => {
+  if (fromVersion === '1' && toVersion === '3') {
+    await migrateV1ToV2(sheets, spreadsheetId, snapshot);
+    return migrateV2ToV3(sheets, spreadsheetId);
+  }
+
   if (fromVersion === toVersion) {
     return null;
   }
@@ -96,8 +103,43 @@ export const runMigrations = async (
     return migrateV1ToV2(sheets, spreadsheetId, snapshot);
   }
 
+  if (fromVersion === '2' && toVersion === '3') {
+    return migrateV2ToV3(sheets, spreadsheetId);
+  }
+
   // Future versions: chain additional migrations here.
   return null;
+};
+
+const migrateV2ToV3 = async (
+  sheets: sheets_v4.Sheets,
+  spreadsheetId: string,
+): Promise<MigrationReport> => {
+  const snapshot = await readSnapshot(sheets, spreadsheetId);
+  await updateRow(sheets, spreadsheetId, SHEET_TABS.transactions, 1, SHEET_HEADERS[SHEET_TABS.transactions]);
+  for (const transaction of snapshot.transactions) {
+    const legacyBudgetId = (transaction as unknown as { budget_id?: string }).budget_id ?? '';
+    const updatedTransaction = {
+      ...transaction,
+      bucket_list_id: transaction.bucket_list_id || legacyBudgetId,
+    };
+    await updateRow(
+      sheets,
+      spreadsheetId,
+      SHEET_TABS.transactions,
+      transaction.rowNumber,
+      toRowValues(SHEET_HEADERS[SHEET_TABS.transactions], updatedTransaction),
+    );
+  }
+
+  return {
+    fromVersion: '2',
+    toVersion: '3',
+    createdCategoryGroups: 0,
+    createdCategories: 0,
+    createdAssignments: 0,
+    createdGoals: 0,
+  };
 };
 
 const migrateV1ToV2 = async (

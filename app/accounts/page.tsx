@@ -17,7 +17,7 @@ interface Transaction {
   id: string;
   account_name: string;
   payee_name: string;
-  budget_name: string;
+  bucket_list_name: string;
   annotate: string;
   transaction_amount: string;
 }
@@ -107,7 +107,7 @@ export default function AccountsPage() {
                     <tr className="border-b border-surface-border text-left text-muted-foreground">
                       <th className="px-2 py-2 font-medium">Account</th>
                       <th className="px-2 py-2 font-medium">Payee</th>
-                      <th className="px-2 py-2 font-medium">Budget</th>
+                      <th className="px-2 py-2 font-medium">Bucket List</th>
                       <th className="px-2 py-2 font-medium">Notes</th>
                       <th className="px-2 py-2 font-medium">Outflow</th>
                       <th className="px-2 py-2 font-medium">Inflow</th>
@@ -122,7 +122,7 @@ export default function AccountsPage() {
                         <tr className="border-b border-surface-border" key={transaction.id}>
                           <td className="px-2 py-3 text-foreground">{transaction.account_name}</td>
                           <td className="px-2 py-3 text-foreground">{transaction.payee_name}</td>
-                          <td className="px-2 py-3 text-foreground">{transaction.budget_name}</td>
+                          <td className="px-2 py-3 text-foreground">{transaction.bucket_list_name}</td>
                           <td className="px-2 py-3 text-foreground">{transaction.annotate || '—'}</td>
                           <td className="px-2 py-3 text-foreground">{outflow}</td>
                           <td className="px-2 py-3 text-foreground">{inflow}</td>

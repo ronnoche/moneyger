@@ -14,7 +14,7 @@ interface TransactionFormValues {
   transaction_amount: string;
   transaction_date: string;
   account_id: string;
-  budget_id: string;
+  bucket_list_id: string;
   payee_name: string;
   annotate: string;
 }
@@ -28,24 +28,24 @@ interface Props {
 export function TransactionForm({ mode, transactionId, initial }: Props) {
   const router = useRouter();
   const [accounts, setAccounts] = useState<OptionItem[]>([]);
-  const [budgets, setBudgets] = useState<OptionItem[]>([]);
+  const [bucketLists, setBucketLists] = useState<OptionItem[]>([]);
   const [payees, setPayees] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [values, setValues] = useState<TransactionFormValues>({
     transaction_amount: initial?.transaction_amount ?? '0.00',
-    transaction_date: initial?.transaction_date ?? '',
+    transaction_date: initial?.transaction_date ?? new Date().toISOString().slice(0, 10),
     account_id: initial?.account_id ?? '',
-    budget_id: initial?.budget_id ?? '',
+    bucket_list_id: initial?.bucket_list_id ?? '',
     payee_name: initial?.payee_name ?? '',
     annotate: initial?.annotate ?? '',
   });
 
   useEffect(() => {
-    Promise.all([fetch('/api/accounts'), fetch('/api/budgets'), fetch('/api/payees')])
-      .then(async ([accountsResponse, budgetsResponse, payeesResponse]) => {
+    Promise.all([fetch('/api/accounts'), fetch('/api/bucket-lists'), fetch('/api/payees')])
+      .then(async ([accountsResponse, bucketListsResponse, payeesResponse]) => {
         const accountsResult = await accountsResponse.json();
-        const budgetsResult = await budgetsResponse.json();
+        const bucketListsResult = await bucketListsResponse.json();
         const payeesResult = await payeesResponse.json();
         setAccounts(
           (accountsResult.accounts ?? []).map((item: { id: string; account_name: string }) => ({
@@ -53,10 +53,10 @@ export function TransactionForm({ mode, transactionId, initial }: Props) {
             label: item.account_name,
           })),
         );
-        setBudgets(
-          (budgetsResult.budgets ?? budgetsResult?.data?.budgets ?? []).map((item: { id: string; budget_name: string }) => ({
+        setBucketLists(
+          (bucketListsResult.bucket_lists ?? []).map((item: { id: string; name: string }) => ({
             id: item.id,
-            label: item.budget_name,
+            label: item.name,
           })),
         );
         setPayees((payeesResult.payees ?? []).map((item: { name: string }) => item.name));
@@ -65,15 +65,6 @@ export function TransactionForm({ mode, transactionId, initial }: Props) {
         setError('Failed to load form options');
       });
   }, []);
-
-  useEffect(() => {
-    if (!initial?.transaction_date) {
-      setValues((previous) => ({
-        ...previous,
-        transaction_date: previous.transaction_date || new Date().toISOString().slice(0, 10),
-      }));
-    }
-  }, [initial?.transaction_date]);
 
   const submit = async () => {
     setSaving(true);
@@ -147,12 +138,12 @@ export function TransactionForm({ mode, transactionId, initial }: Props) {
         </label>
 
         <label className="space-y-1 text-sm">
-          <span className="font-medium text-muted-foreground">Budget</span>
-          <Select value={values.budget_id} onChange={(event) => setValues((previous) => ({ ...previous, budget_id: event.target.value }))}>
-            <option value="">Select budget</option>
-            {budgets.map((budget) => (
-              <option key={budget.id} value={budget.id}>
-                {budget.label}
+          <span className="font-medium text-muted-foreground">Bucket List</span>
+          <Select value={values.bucket_list_id} onChange={(event) => setValues((previous) => ({ ...previous, bucket_list_id: event.target.value }))}>
+            <option value="">Select bucket list</option>
+            {bucketLists.map((bucketList) => (
+              <option key={bucketList.id} value={bucketList.id}>
+                {bucketList.label}
               </option>
             ))}
           </Select>
