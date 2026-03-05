@@ -8,12 +8,13 @@ interface PageHeaderProps {
   description?: string;
   actions?: ReactNode;
   children?: ReactNode;
+  className?: string;
 }
 
-export function PageHeader({ title, description, actions, children }: PageHeaderProps) {
+export function PageHeader({ title, description, actions, children, className }: PageHeaderProps) {
   return (
-    <Card className={children ? 'space-y-4' : undefined} dense>
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <Card className={[children ? 'space-y-2.5' : '', className].filter(Boolean).join(' ')} dense>
+      <div className="flex flex-wrap items-start justify-between gap-2.5">
         <div className="space-y-1">
           <h1 className="text-xl font-semibold tracking-tight text-foreground md:text-2xl">{title}</h1>
           {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}

@@ -65,7 +65,6 @@ export default function AccountsPage() {
             </Link>
           </>
         }
-        description="Track balances and recent movement per wallet."
         title="Wallets"
       />
 

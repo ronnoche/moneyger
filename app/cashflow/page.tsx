@@ -36,7 +36,7 @@ export default function CashflowPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader description="Monitor assets, liabilities, and wallet-level movement." title="Cash Flow" />
+      <PageHeader title="Cash Flow" />
       {error ? <ErrorState message={error} /> : null}
       {data ? (
         <>

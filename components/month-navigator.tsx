@@ -1,36 +1,43 @@
 'use client';
 
-import { addMonths, format, parseISO } from 'date-fns';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { addMonths, format, parse } from 'date-fns';
 import { Button } from '@/components/ui';
 
-export function MonthNavigator() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const monthParam = searchParams.get('month') ?? format(new Date(), 'yyyy-MM-01');
-  const currentMonth = parseISO(monthParam);
-  const label = format(currentMonth, 'MMMM yyyy');
+interface MonthNavigatorProps {
+  monthKey: string;
+  onMonthKeyChange: (value: string) => void;
+}
 
-  const setMonth = (value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('month', value);
-    router.push(`/budgets?${params.toString()}`);
-  };
+export function MonthNavigator({ monthKey, onMonthKeyChange }: MonthNavigatorProps) {
+  const currentMonth = parse(monthKey, 'yyyy-MM', new Date());
+  const currentMonthKey = format(new Date(), 'yyyy-MM');
+  const isCurrentMonth = monthKey === currentMonthKey;
+  const label = format(currentMonth, "MMM ''yy");
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button onClick={() => setMonth(format(addMonths(currentMonth, -1), 'yyyy-MM-01'))} type="button" variant="secondary">
-        Prev
+      <Button
+        onClick={() => onMonthKeyChange(format(addMonths(currentMonth, -1), 'yyyy-MM'))}
+        type="button"
+        variant="secondary"
+      >
+        &larr;
       </Button>
-      <span className="min-w-40 rounded-[var(--radius-sm)] border border-surface-border bg-surface-strong px-3 py-2 text-center text-sm font-medium text-foreground">
+      <span className="min-w-28 rounded-[var(--radius-sm)] border border-surface-border bg-surface-strong px-3 py-2 text-center text-sm font-medium text-foreground">
         {label}
       </span>
-      <Button onClick={() => setMonth(format(addMonths(currentMonth, 1), 'yyyy-MM-01'))} type="button" variant="secondary">
-        Next
+      <Button
+        onClick={() => onMonthKeyChange(format(addMonths(currentMonth, 1), 'yyyy-MM'))}
+        type="button"
+        variant="secondary"
+      >
+        &rarr;
       </Button>
-      <Button onClick={() => setMonth(format(new Date(), 'yyyy-MM-01'))} type="button">
-        Today
-      </Button>
+      {!isCurrentMonth ? (
+        <Button onClick={() => onMonthKeyChange(currentMonthKey)} type="button">
+          Today
+        </Button>
+      ) : null}
     </div>
   );
 }

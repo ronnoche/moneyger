@@ -85,7 +85,6 @@ export default function TransactionsPage() {
             New Transaction
           </Link>
         }
-        description="Search and inspect all inflows and outflows."
         title="Transactions"
       />
 

@@ -4,7 +4,6 @@ import { useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { MonthNavigator } from '@/components/month-navigator';
-import { PageHeader } from '@/components/page-header';
 import { Card, buttonClassName } from '@/components/ui';
 import Link from 'next/link';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-states';
@@ -22,6 +21,7 @@ export function BudgetWorkspaceShell() {
   const [error, setError] = useState('');
   const [data, setData] = useState<WorkspaceState | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [detailsCollapsed, setDetailsCollapsed] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -77,17 +77,6 @@ export function BudgetWorkspaceShell() {
     }
   };
 
-  const statusText = useMemo(() => {
-    if (!data) return '';
-    if (data.summary.ready_to_assign === 0) {
-      return 'All Money Assigned!';
-    }
-    if (data.summary.ready_to_assign > 0) {
-      return 'Ready to Assign';
-    }
-    return 'You assigned more than you have';
-  }, [data]);
-
   const selectedCategory: BudgetWorkspaceCategory | undefined = useMemo(() => {
     if (!data || !selectedCategoryId) return undefined;
     for (const group of data.groups) {
@@ -97,36 +86,62 @@ export function BudgetWorkspaceShell() {
     return undefined;
   }, [data, selectedCategoryId]);
 
+  const summaryCard = useMemo(() => {
+    const readyToAssign = data?.summary.ready_to_assign ?? 0;
+    if (readyToAssign === 0) {
+      return {
+        title: 'All are assigned',
+        value: '0',
+      };
+    }
+    if (readyToAssign > 0) {
+      return {
+        title: 'Ready to Assign',
+        value: readyToAssign.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }),
+      };
+    }
+    return {
+      title: 'Over assigned',
+      value: readyToAssign.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }),
+    };
+  }, [data]);
+
   return (
-    <div className="flex h-full flex-col space-y-4">
-      <PageHeader
-        description="Assign every peso a job and keep bucket lists on track."
-        actions={
-          <Link className={buttonClassName({ variant: 'primary' })} href="/budgets/new">
-            Manage Bucket Lists
-          </Link>
-        }
-        title="Buckets"
-      >
-        <div className="grid gap-4 md:grid-cols-[1fr_auto]">
-          <MonthNavigator />
-          <div className="rounded-[var(--radius-md)] border border-surface-border bg-brand-soft px-4 py-3 text-right">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Ready to Assign
-            </p>
-            <p className="text-2xl font-semibold text-foreground">
-              {data ? data.summary.ready_to_assign.toFixed(2) : '0.00'}
-            </p>
-            <p className="text-sm text-muted-foreground">{statusText}</p>
+    <div className="flex h-full flex-col space-y-3">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_260px] md:items-stretch">
+        <Card className="space-y-2 py-2.5 md:py-3" dense>
+          <h1 className="text-xl font-semibold tracking-tight text-foreground md:text-2xl">Buckets</h1>
+          <MonthNavigator monthKey={monthKey} onMonthKeyChange={setMonthKey} />
+        </Card>
+        <Card className="flex flex-col justify-center bg-brand-soft px-4 py-2.5 text-right" dense>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{summaryCard.title}</p>
+          <p className="text-xl font-semibold text-foreground md:text-2xl">{summaryCard.value}</p>
+          <div className="mt-2">
+            <button
+              className={buttonClassName({
+                size: 'sm',
+                variant: 'secondary',
+                className: 'h-7 px-2.5 text-[11px]',
+              })}
+              onClick={() => setDetailsCollapsed((collapsed) => !collapsed)}
+              type="button"
+            >
+              {detailsCollapsed ? 'Expand' : 'Collapse'}
+            </button>
           </div>
-        </div>
-      </PageHeader>
+        </Card>
+      </div>
 
       {loading ? <LoadingState label="Loading buckets workspace..." /> : null}
       {error ? <ErrorState message={error} /> : null}
 
       {!loading && !error && data ? (
-        <div className="grid flex-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <>
+          <div
+            className={`grid flex-1 gap-4 ${
+              detailsCollapsed ? 'md:grid-cols-1' : 'md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]'
+            }`}
+          >
           <Card className="flex min-h-[400px] flex-col overflow-hidden">
             <div className="flex items-center justify-between border-b border-surface-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <div className="flex flex-1 items-center gap-4">
@@ -146,12 +161,9 @@ export function BudgetWorkspaceShell() {
                   title="No bucket lists yet"
                   description="Create your first bucket and bucket list to start budgeting."
                   action={
-                    <button
-                      className={buttonClassName({ size: 'sm' })}
-                      type="button"
-                    >
+                    <Link className={buttonClassName({ size: 'sm' })} href="/budgets/new">
                       Add Bucket
-                    </button>
+                    </Link>
                   }
                 />
               </div>
@@ -175,6 +187,10 @@ export function BudgetWorkspaceShell() {
                               className={`cursor-pointer border-b border-surface-border hover:bg-surface-elevated ${
                                 isSelected ? 'bg-surface-elevated' : ''
                               }`}
+                              onClick={() => {
+                                setSelectedCategoryId(category.id);
+                                setDetailsCollapsed(false);
+                              }}
                             >
                               <td className="px-4 py-2 text-sm text-foreground">
                                 {category.name}
@@ -187,7 +203,10 @@ export function BudgetWorkspaceShell() {
                                   onBlur={(event) =>
                                     handleAssignedChange(category.id, event.target.value)
                                   }
-                                  onClick={() => setSelectedCategoryId(category.id)}
+                                  onClick={() => {
+                                    setSelectedCategoryId(category.id);
+                                    setDetailsCollapsed(false);
+                                  }}
                                 />
                               </td>
                               <td className="px-2 py-2 text-right text-foreground">
@@ -207,7 +226,8 @@ export function BudgetWorkspaceShell() {
             )}
           </Card>
 
-          <Card className="flex min-h-[400px] flex-col gap-4 p-4">
+          {!detailsCollapsed ? (
+            <Card className="flex min-h-[400px] flex-col gap-4 p-4">
             {selectedCategory ? (
               <>
                 <div>
@@ -251,8 +271,10 @@ export function BudgetWorkspaceShell() {
                 Select a bucket list from the left to see details.
               </p>
             )}
-          </Card>
-        </div>
+            </Card>
+          ) : null}
+          </div>
+        </>
       ) : null}
     </div>
   );
