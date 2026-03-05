@@ -65,7 +65,11 @@ export const validateUniqueAccountName = (name: string, accounts: Account[], cur
   return duplicate ? 'account_name must be unique' : null;
 };
 
-export const validateUniqueBudgetName = (name: string, budgets: Budget[], currentId?: string): string | null => {
+export const validateUniqueBudgetName = (
+  name: string,
+  budgets: Array<Pick<Budget, 'id' | 'budget_name'>>,
+  currentId?: string,
+): string | null => {
   const normalized = name.toLowerCase();
   const duplicate = budgets.find(
     (budget) => budget.budget_name.toLowerCase() === normalized && budget.id !== currentId,

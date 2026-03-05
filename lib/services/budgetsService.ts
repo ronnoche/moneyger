@@ -1,4 +1,4 @@
-import { differenceInCalendarMonths, parseISO } from 'date-fns';
+import { differenceInCalendarMonths, format, parseISO } from 'date-fns';
 import type { sheets_v4 } from 'googleapis';
 import { ApiError } from '@/lib/api/errors';
 import { isDateWithin, monthBounds, nowIso, parseAmount, previousMonthBounds, toAmountString } from '@/lib/domain/utils';
@@ -63,6 +63,7 @@ export const listBudgetsWithMetrics = async (sheets: sheets_v4.Sheets, sheetId: 
   const { start, end } = monthBounds(month);
   const { start: prevStart, end: prevEnd } = previousMonthBounds(month);
   const monthKey = month.slice(0, 7);
+  const prevMonthKey = format(prevStart, 'yyyy-MM');
 
   const budgets = snapshot.categories.map((category) => {
     const monthly_assigned = snapshot.categoryAssignments
@@ -87,7 +88,7 @@ export const listBudgetsWithMetrics = async (sheets: sheets_v4.Sheets, sheetId: 
     .filter((txn) => isDateWithin(txn.transaction_date, start, end))
     .reduce((sum, txn) => sum + parseAmount(txn.transaction_amount), 0);
   const monthly_leftover_assigned = snapshot.categoryAssignments
-    .filter((assignment) => assignment.month_key === prevStart.slice(0, 7))
+    .filter((assignment) => assignment.month_key === prevMonthKey)
     .reduce((sum, assignment) => sum + parseAmount(assignment.assigned_amount), 0);
   const monthly_leftover_activity = snapshot.transactions
     .filter((txn) => isDateWithin(txn.transaction_date, prevStart, prevEnd))

@@ -77,16 +77,16 @@ export const runMigrations = async (
   fromVersion: string,
   toVersion: string,
 ): Promise<MigrationReport | null> => {
-  if (fromVersion === '1' && toVersion === '3') {
-    await migrateV1ToV2(sheets, spreadsheetId, snapshot);
-    return migrateV2ToV3(sheets, spreadsheetId);
-  }
-
   if (fromVersion === toVersion) {
     return null;
   }
 
   const snapshot = await readSnapshot(sheets, spreadsheetId);
+
+  if (fromVersion === '1' && toVersion === '3') {
+    await migrateV1ToV2(sheets, spreadsheetId, snapshot);
+    return migrateV2ToV3(sheets, spreadsheetId);
+  }
 
   if (fromVersion === '1' && toVersion === '2') {
     if (hasV2Data(snapshot)) {
