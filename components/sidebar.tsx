@@ -18,6 +18,7 @@ interface Account {
 interface SidebarProps {
   className?: string;
   onNavigate?: () => void;
+  onCollapse?: () => void;
 }
 
 const navigation = [
@@ -27,7 +28,7 @@ const navigation = [
   { href: '/accounts', label: 'Accounts' },
 ];
 
-export function Sidebar({ className, onNavigate }: SidebarProps) {
+export function Sidebar({ className, onNavigate, onCollapse }: SidebarProps) {
   const pathname = usePathname();
   const { data } = useSession();
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -50,6 +51,18 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
     <aside className={clsx('glass flex h-full w-full max-w-80 flex-col p-4 md:p-5', className)}>
       <div className="mb-5 flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold tracking-tight text-foreground">Moneyger</h1>
+        {onCollapse ? (
+          <Button
+            aria-label="Collapse sidebar"
+            className="px-2 text-xs"
+            onClick={onCollapse}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            Hide
+          </Button>
+        ) : null}
       </div>
 
       <nav className="mb-5 grid gap-1.5">

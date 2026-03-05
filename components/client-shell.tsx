@@ -16,6 +16,7 @@ export function ClientShell({ children }: Props) {
   const pathname = usePathname();
   const { status } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
+   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const showSidebar = pathname !== '/' && status === 'authenticated';
   const pageTitle = pathname.slice(1).split('/')[0] || 'Home';
 
@@ -55,9 +56,31 @@ export function ClientShell({ children }: Props) {
           <div className="flex min-h-[calc(100vh-2rem)] gap-4">
             {showSidebar ? (
               <>
-                <div className="hidden w-80 shrink-0 md:block">
+                <div className="hidden shrink-0 md:block">
                   <div className="sticky top-6 h-[calc(100vh-3rem)]">
-                    <Sidebar />
+                    {sidebarCollapsed ? (
+                      <div className="flex h-full items-start">
+                        <Button
+                          aria-label="Expand navigation"
+                          className="w-10"
+                          onClick={() => setSidebarCollapsed(false)}
+                          size="sm"
+                          type="button"
+                          variant="secondary"
+                        >
+                          {'>'}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex h-full">
+                        <Sidebar
+                          className="w-80"
+                          onCollapse={() => {
+                            setSidebarCollapsed(true);
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
                 {mobileOpen ? (

@@ -100,27 +100,27 @@ export function BudgetWorkspaceShell() {
   return (
     <div className="flex h-full flex-col space-y-4">
       <PageHeader
+        description="Assign every peso a job and keep categories on track."
         actions={
           <Link className={buttonClassName({ variant: 'primary' })} href="/budgets/new">
             Manage Buckets
           </Link>
         }
-        description="Assign every peso a job and keep categories on track."
         title="Budget"
-      />
-
-      <Card className="grid gap-4 md:grid-cols-[1fr_auto]">
-        <MonthNavigator />
-        <div className="rounded-[var(--radius-md)] border border-surface-border bg-brand-soft px-4 py-3 text-right">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Ready to Assign
-          </p>
-          <p className="text-2xl font-semibold text-foreground">
-            {data ? data.summary.ready_to_assign.toFixed(2) : '0.00'}
-          </p>
-          <p className="text-sm text-muted-foreground">{statusText}</p>
+      >
+        <div className="grid gap-4 md:grid-cols-[1fr_auto]">
+          <MonthNavigator />
+          <div className="rounded-[var(--radius-md)] border border-surface-border bg-brand-soft px-4 py-3 text-right">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Ready to Assign
+            </p>
+            <p className="text-2xl font-semibold text-foreground">
+              {data ? data.summary.ready_to_assign.toFixed(2) : '0.00'}
+            </p>
+            <p className="text-sm text-muted-foreground">{statusText}</p>
+          </div>
         </div>
-      </Card>
+      </PageHeader>
 
       {loading ? <LoadingState label="Loading budget workspace..." /> : null}
       {error ? <ErrorState message={error} /> : null}

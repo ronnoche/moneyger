@@ -7,7 +7,7 @@ import { Button } from '@/components/ui';
 export function MonthNavigator() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const monthParam = searchParams.get('month') ?? format(new Date(1970, 0, 1), 'yyyy-MM-01');
+  const monthParam = searchParams.get('month') ?? format(new Date(), 'yyyy-MM-01');
   const currentMonth = parseISO(monthParam);
   const label = format(currentMonth, 'MMMM yyyy');
 
