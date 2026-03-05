@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/options';
 import { Card } from '@/components/ui';
+import { GoogleAuthCta } from '@/components/google-auth-cta';
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
@@ -17,26 +18,30 @@ export default async function HomePage() {
           <p className="inline-flex rounded-full border border-surface-border bg-brand-soft px-3 py-1 text-xs font-semibold uppercase tracking-wide text-foreground">
             Simple envelope-style budgeting
           </p>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl">Give every dollar a job with Moneyger</h1>
+          <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl">
+            Give every dollar a job with <span className="text-brand">Moneyger</span>
+          </h1>
           <p className="max-w-3xl text-base text-muted-foreground md:text-lg">
             Moneyger is a YNAB-lite budget: envelope-style buckets, a clear plan for this month&apos;s money, and a calm view of what you can safely spend right now.
           </p>
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <Link
-            className="inline-flex h-11 items-center justify-center rounded-[var(--radius-sm)] bg-brand px-5 text-sm font-medium text-brand-foreground transition-colors duration-200 hover:brightness-110"
-            href="/api/auth/signin?provider=google"
-          >
-            Get started with Google
-          </Link>
-          <Link
-            className="inline-flex h-11 items-center justify-center rounded-[var(--radius-sm)] border border-surface-border bg-surface-strong px-5 text-sm font-medium text-foreground transition-colors duration-200 hover:bg-brand-soft"
-            href="/api/auth/signin?provider=google"
-          >
-            Sign in to continue
-          </Link>
+          <GoogleAuthCta />
         </div>
+      </Card>
+
+      <Card className="space-y-4 px-6 py-6 md:px-8">
+        <h2 className="text-2xl font-semibold text-foreground md:text-3xl">What is envelope-style budgeting?</h2>
+        <p className="text-sm text-muted-foreground md:text-base">
+          Envelope-style budgeting means every dollar gets assigned to a specific job before you spend it. Instead of one big balance, you plan with focused buckets for groceries, rent, savings goals, and other priorities.
+        </p>
+        <p className="text-sm text-muted-foreground md:text-base">
+          This method makes trade-offs visible. If one bucket is low, you can move money from another bucket on purpose and keep your full plan realistic for the rest of the month.
+        </p>
+        <p className="text-sm text-muted-foreground md:text-base">
+          Moneyger applies this model on top of your own Google Sheet, so your budget stays simple to manage while your data remains in your control.
+        </p>
       </Card>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -59,6 +64,48 @@ export default async function HomePage() {
           </p>
         </Card>
       </div>
+
+      <Card className="space-y-5 px-6 py-6 md:px-8">
+        <h2 className="text-2xl font-semibold text-foreground md:text-3xl">FAQ</h2>
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold text-foreground">What is Moneyger and who is it for?</h3>
+            <p className="text-sm text-muted-foreground">
+              Moneyger is a lightweight envelope-style budgeting app for people who want a clear monthly plan without a complex setup. It is built for anyone who wants practical control over spending and savings.
+            </p>
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold text-foreground">How does Moneyger use my Google account and spreadsheets?</h3>
+            <p className="text-sm text-muted-foreground">
+              Moneyger uses Google sign-in to connect to your account and create or update your budgeting sheet. It requests access needed to run your budget workflow in Google Sheets.
+            </p>
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold text-foreground">Who owns my financial data?</h3>
+            <p className="text-sm text-muted-foreground">
+              You do. Your budget data lives in your own Google Sheet, under your Google account, and you keep ownership and export access at all times.
+            </p>
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold text-foreground">Do you store my banking credentials or transaction data?</h3>
+            <p className="text-sm text-muted-foreground">
+              No. Moneyger does not ask for or store banking usernames, passwords, or direct bank connections. You manage entries through your budget sheet.
+            </p>
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold text-foreground">Is there a subscription or cost?</h3>
+            <p className="text-sm text-muted-foreground">
+              Moneyger is currently in beta and free for now. Pricing can change later as the product evolves.
+            </p>
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold text-foreground">How do I stop using Moneyger?</h3>
+            <p className="text-sm text-muted-foreground">
+              You can stop at any time by revoking Google access for Moneyger and deleting your budgeting sheet if you no longer want it.
+            </p>
+          </div>
+        </div>
+      </Card>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-surface-border pt-4 text-xs text-muted-foreground">
         <p className="max-w-xl">
