@@ -78,9 +78,7 @@ export function ThemeToggle() {
       aria-checked={isDark}
       aria-label="Toggle color theme"
       aria-pressed={isDark}
-      className={`relative inline-flex h-8 w-14 items-center rounded-full border border-surface-border bg-surface-strong px-1 text-[10px] font-medium text-muted-foreground transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 ${
-        isDark ? 'bg-slate-900' : 'bg-surface-strong'
-      }`}
+      className="relative inline-flex h-8 w-14 items-center rounded-full border border-surface-border bg-surface-strong px-1 text-[10px] font-medium text-muted-foreground transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
       onClick={() => {
         const nextTheme = isDark ? 'light' : 'dark';
         applyTheme(nextTheme);
