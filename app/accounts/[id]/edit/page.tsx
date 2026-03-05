@@ -24,7 +24,7 @@ export default function EditAccountPage() {
   }, [id]);
 
   if (!account) {
-    return <LoadingState label="Loading account..." />;
+    return <LoadingState label="Loading wallet..." />;
   }
 
   return (

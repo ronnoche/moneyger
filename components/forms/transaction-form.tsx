@@ -126,9 +126,9 @@ export function TransactionForm({ mode, transactionId, initial }: Props) {
         </label>
 
         <label className="space-y-1 text-sm">
-          <span className="font-medium text-muted-foreground">Account</span>
+          <span className="font-medium text-muted-foreground">Wallet</span>
           <Select value={values.account_id} onChange={(event) => setValues((previous) => ({ ...previous, account_id: event.target.value }))}>
-            <option value="">Select account</option>
+            <option value="">Select wallet</option>
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
                 {account.label}

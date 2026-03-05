@@ -61,12 +61,12 @@ export default function AccountsPage() {
               Add Transaction
             </Link>
             <Link className={buttonClassName({})} href="/accounts/new">
-              Add Account
+              Add Wallet
             </Link>
           </>
         }
-        description="Track balances and recent movement per account."
-        title="Accounts"
+        description="Track balances and recent movement per wallet."
+        title="Wallets"
       />
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -75,7 +75,7 @@ export default function AccountsPage() {
           <p className="mt-2 text-2xl font-semibold text-foreground">{total.toFixed(2)}</p>
         </Card>
         <Card dense>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Accounts</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Wallets</p>
           <p className="mt-2 text-2xl font-semibold text-foreground">{accounts.length}</p>
         </Card>
         <Card dense>
@@ -84,7 +84,7 @@ export default function AccountsPage() {
         </Card>
       </div>
 
-      {loading ? <LoadingState label="Loading accounts..." /> : null}
+      {loading ? <LoadingState label="Loading wallets..." /> : null}
       {error ? <ErrorState message={error} /> : null}
 
       {!loading && !error ? (
@@ -96,8 +96,8 @@ export default function AccountsPage() {
                   Add first transaction
                 </Link>
               }
-              description="Transactions linked to accounts appear here."
-              title="No account activity yet"
+              description="Transactions linked to wallets appear here."
+              title="No wallet activity yet"
             />
           ) : (
             <>
@@ -105,7 +105,7 @@ export default function AccountsPage() {
                 <table className="w-full border-collapse text-sm">
                   <thead>
                     <tr className="border-b border-surface-border text-left text-muted-foreground">
-                      <th className="px-2 py-2 font-medium">Account</th>
+                      <th className="px-2 py-2 font-medium">Wallet</th>
                       <th className="px-2 py-2 font-medium">Payee</th>
                       <th className="px-2 py-2 font-medium">Bucket List</th>
                       <th className="px-2 py-2 font-medium">Notes</th>

@@ -36,7 +36,7 @@ export default function CashflowPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader description="Monitor assets, liabilities, and account-level movement." title="Cash Flow" />
+      <PageHeader description="Monitor assets, liabilities, and wallet-level movement." title="Cash Flow" />
       {error ? <ErrorState message={error} /> : null}
       {data ? (
         <>
@@ -72,7 +72,7 @@ export default function CashflowPage() {
                     </li>
                   ))}
                   {card.transactions.length === 0 ? (
-                    <li className="text-sm text-muted-foreground">No transactions in this account.</li>
+                    <li className="text-sm text-muted-foreground">No transactions in this wallet.</li>
                   ) : null}
                 </ul>
                 <p className="mt-3 text-sm font-semibold text-foreground">Total: {card.total.toFixed(2)}</p>

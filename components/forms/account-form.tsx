@@ -62,17 +62,17 @@ export function AccountForm({ mode, accountId, initial }: Props) {
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <PageHeader
-        description={mode === 'create' ? 'Add a new account to track money movement.' : 'Update account details and balance.'}
-        title={mode === 'create' ? 'New Account' : 'Edit Account'}
+        description={mode === 'create' ? 'Add a new wallet to track money movement.' : 'Update wallet details and balance.'}
+        title={mode === 'create' ? 'New Wallet' : 'Edit Wallet'}
       />
       <Card className="mx-auto max-w-xl space-y-4">
         {error ? <p className="rounded-[var(--radius-sm)] border border-danger px-3 py-2 text-sm text-danger">{error}</p> : null}
         <label className="space-y-1 text-sm">
-          <span className="font-medium text-muted-foreground">Account Name</span>
+          <span className="font-medium text-muted-foreground">Wallet Name</span>
           <Input value={values.account_name} onChange={(event) => setValues((previous) => ({ ...previous, account_name: event.target.value }))} />
         </label>
         <label className="space-y-1 text-sm">
-          <span className="font-medium text-muted-foreground">Account Balance</span>
+          <span className="font-medium text-muted-foreground">Wallet Balance</span>
           <Input
             min="0"
             step="0.01"
@@ -82,7 +82,7 @@ export function AccountForm({ mode, accountId, initial }: Props) {
           />
         </label>
         <label className="space-y-1 text-sm">
-          <span className="font-medium text-muted-foreground">Account Type</span>
+          <span className="font-medium text-muted-foreground">Wallet Type</span>
           <Select value={values.account_type} onChange={(event) => setValues((previous) => ({ ...previous, account_type: event.target.value as AccountFormValues['account_type'] }))}>
             <option value="cash">cash</option>
             <option value="savings">savings</option>

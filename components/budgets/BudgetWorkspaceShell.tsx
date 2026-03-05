@@ -100,7 +100,7 @@ export function BudgetWorkspaceShell() {
   return (
     <div className="flex h-full flex-col space-y-4">
       <PageHeader
-        description="Assign every peso a job and keep categories on track."
+        description="Assign every peso a job and keep bucket lists on track."
         actions={
           <Link className={buttonClassName({ variant: 'primary' })} href="/budgets/new">
             Manage Bucket Lists
@@ -122,7 +122,7 @@ export function BudgetWorkspaceShell() {
         </div>
       </PageHeader>
 
-      {loading ? <LoadingState label="Loading budget workspace..." /> : null}
+      {loading ? <LoadingState label="Loading buckets workspace..." /> : null}
       {error ? <ErrorState message={error} /> : null}
 
       {!loading && !error && data ? (
@@ -130,8 +130,8 @@ export function BudgetWorkspaceShell() {
           <Card className="flex min-h-[400px] flex-col overflow-hidden">
             <div className="flex items-center justify-between border-b border-surface-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <div className="flex flex-1 items-center gap-4">
-                <span className="w-1/3">Category Group</span>
-                <span className="w-1/3">Category</span>
+                <span className="w-1/3">Bucket</span>
+                <span className="w-1/3">Bucket List</span>
               </div>
               <div className="flex min-w-[260px] flex-none items-center justify-end gap-6">
                 <span>Assigned</span>
@@ -143,14 +143,14 @@ export function BudgetWorkspaceShell() {
             {data.groups.length === 0 ? (
               <div className="flex flex-1 items-center justify-center p-6">
                 <EmptyState
-                  title="No categories yet"
-                  description="Create your first group and category to start budgeting."
+                  title="No bucket lists yet"
+                  description="Create your first bucket and bucket list to start budgeting."
                   action={
                     <button
                       className={buttonClassName({ size: 'sm' })}
                       type="button"
                     >
-                      Add Category Group
+                      Add Bucket
                     </button>
                   }
                 />
@@ -212,7 +212,7 @@ export function BudgetWorkspaceShell() {
               <>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Category
+                    Bucket List
                   </p>
                   <p className="text-lg font-semibold text-foreground">{selectedCategory.name}</p>
                 </div>
@@ -248,7 +248,7 @@ export function BudgetWorkspaceShell() {
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Select a category from the left to see details.
+                Select a bucket list from the left to see details.
               </p>
             )}
           </Card>

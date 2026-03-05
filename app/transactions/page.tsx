@@ -99,7 +99,7 @@ export default function TransactionsPage() {
               setAccountId(event.target.value);
             }}
           >
-            <option value="">All accounts</option>
+            <option value="">All wallets</option>
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
                 {account.label}
@@ -163,7 +163,7 @@ export default function TransactionsPage() {
                 <table className="w-full border-collapse text-sm">
                   <thead>
                     <tr className="border-b border-surface-border text-left text-muted-foreground">
-                      <th className="px-2 py-2 font-medium">Account</th>
+                      <th className="px-2 py-2 font-medium">Wallet</th>
                       <th className="px-2 py-2 font-medium">Date</th>
                       <th className="px-2 py-2 font-medium">Payee</th>
                       <th className="px-2 py-2 font-medium">Notes</th>
