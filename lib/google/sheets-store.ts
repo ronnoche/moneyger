@@ -1,6 +1,17 @@
 import type { sheets_v4 } from 'googleapis';
 import type { SheetsSnapshot } from '@/lib/domain/types';
-import { parseAccountBudgets, parseAccounts, parseBudgets, parseMetadata, parsePayees, parseTransactions } from '@/lib/google/mappers';
+import {
+  parseAccountBudgets,
+  parseAccounts,
+  parseBudgets,
+  parseCategoryAssignments,
+  parseCategoryGoals,
+  parseCategoryGroups,
+  parseCategories,
+  parseMetadata,
+  parsePayees,
+  parseTransactions,
+} from '@/lib/google/mappers';
 import { batchGetRanges } from '@/lib/google/client';
 import { SHEET_HEADERS, SHEET_TABS } from '@/lib/google/schema';
 
@@ -12,6 +23,10 @@ export const readSnapshot = async (sheets: sheets_v4.Sheets, spreadsheetId: stri
     `${SHEET_TABS.accountBudgets}!A:ZZ`,
     `${SHEET_TABS.payees}!A:ZZ`,
     `${SHEET_TABS.metadata}!A:ZZ`,
+    `${SHEET_TABS.categoryGroups}!A:ZZ`,
+    `${SHEET_TABS.categories}!A:ZZ`,
+    `${SHEET_TABS.categoryAssignments}!A:ZZ`,
+    `${SHEET_TABS.categoryGoals}!A:ZZ`,
   ];
   const valueRanges = await batchGetRanges(sheets, spreadsheetId, ranges);
 
@@ -22,6 +37,10 @@ export const readSnapshot = async (sheets: sheets_v4.Sheets, spreadsheetId: stri
     accountBudgets: parseAccountBudgets(valueRanges[3]?.values as string[][] | undefined),
     payees: parsePayees(valueRanges[4]?.values as string[][] | undefined),
     metadata: parseMetadata(valueRanges[5]?.values as string[][] | undefined),
+    categoryGroups: parseCategoryGroups(valueRanges[6]?.values as string[][] | undefined),
+    categories: parseCategories(valueRanges[7]?.values as string[][] | undefined),
+    categoryAssignments: parseCategoryAssignments(valueRanges[8]?.values as string[][] | undefined),
+    categoryGoals: parseCategoryGoals(valueRanges[9]?.values as string[][] | undefined),
   };
 };
 

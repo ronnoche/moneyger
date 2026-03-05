@@ -1,6 +1,7 @@
 export type AccountType = 'cash' | 'savings' | 'credit' | 'loan';
 export type BudgetCadence = 'weekly' | 'bi_weekly' | 'monthly' | 'quarterly' | 'yearly';
 export type BudgetType = 'savings' | 'payment';
+export type GoalType = 'monthly_target' | 'needed_by_date' | 'monthly_savings' | 'debt_paydown';
 
 export interface RowEntity {
   rowNumber: number;
@@ -30,6 +31,46 @@ export interface Budget extends RowEntity {
   minimum_payment_amount: string;
   current_cadence_goal: string;
   linked_account_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CategoryGroup extends RowEntity {
+  id: string;
+  name: string;
+  sort_order: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Category extends RowEntity {
+  id: string;
+  group_id: string;
+  name: string;
+  icon: string;
+  sort_order: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CategoryAssignment extends RowEntity {
+  id: string;
+  category_id: string;
+  month_key: string;
+  assigned_amount: string;
+  source: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CategoryGoal extends RowEntity {
+  id: string;
+  category_id: string;
+  goal_type: GoalType | '';
+  target_amount: string;
+  target_date: string;
+  cadence: BudgetCadence | '';
+  metadata_json: string;
   created_at: string;
   updated_at: string;
 }
@@ -96,5 +137,9 @@ export interface SheetsSnapshot {
   accountBudgets: AccountBudget[];
   payees: Payee[];
   metadata: MetadataRow[];
+  categoryGroups: CategoryGroup[];
+  categories: Category[];
+  categoryAssignments: CategoryAssignment[];
+  categoryGoals: CategoryGoal[];
 }
 

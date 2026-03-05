@@ -2,6 +2,10 @@ import type {
   Account,
   AccountBudget,
   Budget,
+  Category,
+  CategoryAssignment,
+  CategoryGoal,
+  CategoryGroup,
   MetadataRow,
   Payee,
   Transaction,
@@ -37,6 +41,13 @@ export const parseTransactions = (values?: SheetValues): Transaction[] => parseS
 export const parseAccountBudgets = (values?: SheetValues): AccountBudget[] => parseSheet<AccountBudget>(values);
 export const parsePayees = (values?: SheetValues): Payee[] => parseSheet<Payee>(values);
 export const parseMetadata = (values?: SheetValues): MetadataRow[] => parseSheet<MetadataRow>(values);
+export const parseCategoryGroups = (values?: SheetValues): CategoryGroup[] =>
+  parseSheet<CategoryGroup>(values);
+export const parseCategories = (values?: SheetValues): Category[] => parseSheet<Category>(values);
+export const parseCategoryAssignments = (values?: SheetValues): CategoryAssignment[] =>
+  parseSheet<CategoryAssignment>(values);
+export const parseCategoryGoals = (values?: SheetValues): CategoryGoal[] =>
+  parseSheet<CategoryGoal>(values);
 
 export const rowFromObject = (
   header: string[],

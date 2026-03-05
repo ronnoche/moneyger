@@ -1,4 +1,4 @@
-export const CURRENT_SCHEMA_VERSION = '1';
+export const CURRENT_SCHEMA_VERSION = '2';
 
 export const SHEET_TABS = {
   accounts: 'Accounts',
@@ -7,6 +7,10 @@ export const SHEET_TABS = {
   accountBudgets: 'AccountBudgets',
   payees: 'Payees',
   metadata: 'Metadata',
+  categoryGroups: 'CategoryGroups',
+  categories: 'Categories',
+  categoryAssignments: 'CategoryAssignments',
+  categoryGoals: 'CategoryGoals',
 } as const;
 
 export const SHEET_HEADERS: Record<string, string[]> = {
@@ -57,5 +61,35 @@ export const SHEET_HEADERS: Record<string, string[]> = {
   ],
   [SHEET_TABS.payees]: ['id', 'name', 'created_at', 'updated_at'],
   [SHEET_TABS.metadata]: ['key', 'value'],
+  [SHEET_TABS.categoryGroups]: ['id', 'name', 'sort_order', 'created_at', 'updated_at'],
+  [SHEET_TABS.categories]: [
+    'id',
+    'group_id',
+    'name',
+    'icon',
+    'sort_order',
+    'created_at',
+    'updated_at',
+  ],
+  [SHEET_TABS.categoryAssignments]: [
+    'id',
+    'category_id',
+    'month_key',
+    'assigned_amount',
+    'source',
+    'created_at',
+    'updated_at',
+  ],
+  [SHEET_TABS.categoryGoals]: [
+    'id',
+    'category_id',
+    'goal_type',
+    'target_amount',
+    'target_date',
+    'cadence',
+    'metadata_json',
+    'created_at',
+    'updated_at',
+  ],
 };
 
