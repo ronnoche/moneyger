@@ -1,7 +1,7 @@
 'use client';
 
 import clsx from 'clsx';
-import type { ComponentPropsWithoutRef, ReactNode } from 'react';
+import type { ComponentPropsWithoutRef, ReactElement, ReactNode } from 'react';
 import { cloneElement, isValidElement } from 'react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'soft';
@@ -50,10 +50,14 @@ export const Button = ({
   const classes = buttonClassName({ variant, size, className });
 
   if (asChild && isValidElement(children)) {
-    return cloneElement(children, {
-      ...props,
-      className: clsx(classes, (children.props as { className?: string }).className),
-    });
+    const child = children as ReactElement<any>;
+    return cloneElement(
+      child,
+      {
+        ...(props as any),
+        className: clsx(classes, (child.props as any)?.className),
+      } as any,
+    );
   }
 
   return (
