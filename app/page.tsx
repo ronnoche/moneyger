@@ -59,6 +59,21 @@ export default async function HomePage() {
           </p>
         </Card>
       </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-surface-border pt-4 text-xs text-muted-foreground">
+        <p className="max-w-xl">
+          Moneyger connects to your own Google Sheet. Review the legal terms before you start using the app.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/terms" className="underline-offset-4 hover:underline">
+            Terms of Service
+          </Link>
+          <span aria-hidden="true">·</span>
+          <Link href="/privacy" className="underline-offset-4 hover:underline">
+            Privacy Policy
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

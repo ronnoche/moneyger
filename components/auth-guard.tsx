@@ -8,7 +8,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-const publicPaths = new Set(['/']);
+const publicPaths = new Set(['/', '/terms', '/privacy']);
 
 export function AuthGuard({ children }: Props) {
   const { status } = useSession();
