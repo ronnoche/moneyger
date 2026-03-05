@@ -2,6 +2,7 @@ import type { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import { ensureUserSheetExists } from '@/lib/google/ensureUserSheetExists';
 import { refreshAccessToken } from '@/lib/google/auth';
+import { syncRegistryUser } from '@/lib/google/registry';
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -25,12 +26,8 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
     async jwt({ token, user, account }) {
-      if (user?.email) {
-        token.email = user.email;
-      }
-      if (user?.id) {
-        token.userId = user.id;
-      }
+      if (user?.email) token.email = user.email;
+      if (user?.id) token.userId = user.id;
 
       if (account) {
         token.accessToken = account.access_token;
@@ -46,7 +43,24 @@ export const authOptions: NextAuthOptions = {
             accessTokenExpires: token.accessTokenExpires,
           });
         } catch (error) {
-          console.error('Failed to ensure user sheet exists:', error);
+          console.error('[auth] Failed to ensure user sheet exists:', error);
+        }
+      }
+
+      if (token.sheetId) {
+        token.userSheetId = token.sheetId;
+      }
+
+      if (token.sub && token.email && token.sheetId) {
+        try {
+          const result = await syncRegistryUser({
+            googleSub: token.sub,
+            email: token.email,
+            userSheetId: token.sheetId,
+          });
+          token.isFirstTime = result.isFirstTime;
+        } catch (error) {
+          console.error('[registry] Failed to sync registry user:', error);
         }
       }
 
@@ -79,9 +93,12 @@ export const authOptions: NextAuthOptions = {
       session.user.id = token.userId;
       session.user.email = token.email ?? session.user.email;
       session.user.sheetId = token.sheetId;
+       session.user.userSheetId = (token as typeof token & { userSheetId?: string | null }).userSheetId ?? token.sheetId ?? null;
       session.accessToken = token.accessToken;
       session.refreshToken = token.refreshToken;
       session.accessTokenExpires = token.accessTokenExpires;
+      session.user.isFirstTime = token.isFirstTime;
+      session.isFirstTime = token.isFirstTime;
       return session;
     },
   },

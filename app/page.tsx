@@ -8,6 +8,9 @@ import { GoogleAuthCta } from '@/components/google-auth-cta';
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
   if (session?.user?.email) {
+    if (session.user.isFirstTime) {
+      redirect('/onboarding');
+    }
     redirect('/budgets');
   }
 

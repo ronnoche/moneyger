@@ -26,6 +26,9 @@ Required keys:
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `GOOGLE_PROJECT_ID`
+- `GOOGLE_REGISTRY_SPREADSHEET_ID`
+- `GOOGLE_REGISTRY_CLIENT_EMAIL`
+- `GOOGLE_REGISTRY_PRIVATE_KEY`
 
 ## Google OAuth setup
 
@@ -63,3 +66,16 @@ On first sign-in, Moneyger creates one spreadsheet in your Drive with app proper
 - Set environment variables in your host settings.
 - Use HTTPS in production because Google OAuth callback URLs and secure session cookies depend on it.
 - Ensure serverless functions have network access to Google APIs.
+
+## Registry sheet
+
+Moneyger uses a single registry Google Sheet, owned by you, to track user registrations. Create a sheet with a `Users` tab and the following header row:
+
+- `google_sub`
+- `email`
+- `user_sheet_id`
+- `registered_at`
+- `last_seen_at`
+- `status`
+
+Set `GOOGLE_REGISTRY_SPREADSHEET_ID` to this sheet's id and configure `GOOGLE_REGISTRY_CLIENT_EMAIL` / `GOOGLE_REGISTRY_PRIVATE_KEY` from your service account JSON key that has editor access to the registry sheet.
