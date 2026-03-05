@@ -18,10 +18,7 @@ export const formatValidationError = (issues: Array<{ path: PropertyKey[]; messa
     .map((issue) => `${issue.path.map((segment) => String(segment)).join('.') || 'input'}: ${issue.message}`)
     .join(', ');
 
-export const toRowValues = <T extends Record<string, string | number | undefined | null>>(
-  header: string[],
-  value: T,
-): string[] =>
+export const toRowValues = <T extends object>(header: string[], value: T): string[] =>
   rowFromObject(header, value);
 
 export const deleteEntityRow = async (

@@ -49,8 +49,8 @@ export const parseCategoryAssignments = (values?: SheetValues): CategoryAssignme
 export const parseCategoryGoals = (values?: SheetValues): CategoryGoal[] =>
   parseSheet<CategoryGoal>(values);
 
-export const rowFromObject = (
+export const rowFromObject = <T extends object>(
   header: string[],
-  value: Record<string, string | number | undefined | null>,
-): string[] => header.map((column) => String(value[column] ?? ''));
+  value: T,
+): string[] => header.map((column) => String((value as Record<string, string | number | undefined | null>)[column] ?? ''));
 
