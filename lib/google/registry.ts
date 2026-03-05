@@ -17,12 +17,11 @@ const getRegistrySheetsClient = (): sheets_v4.Sheets => {
     throw new Error('Missing GOOGLE_REGISTRY_CLIENT_EMAIL or GOOGLE_REGISTRY_PRIVATE_KEY');
   }
 
-  const auth = new google.auth.JWT(
-    clientEmail,
-    undefined,
-    privateKey.replace(/\\n/g, '\n'),
-    ['https://www.googleapis.com/auth/spreadsheets'],
-  );
+  const auth = new google.auth.JWT({
+    email: clientEmail,
+    key: privateKey.replace(/\\n/g, '\n'),
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  });
 
   return google.sheets({ version: 'v4', auth });
 };

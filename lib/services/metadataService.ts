@@ -3,6 +3,7 @@ import { CURRENT_SCHEMA_VERSION, SHEET_TABS } from '@/lib/google/schema';
 import { readSnapshot } from '@/lib/google/sheets-store';
 import { updateRow } from '@/lib/google/client';
 import { nowIso } from '@/lib/domain/utils';
+import { runMigrations } from '@/lib/services/migrationService';
 
 export const getSchemaVersion = async (sheets: sheets_v4.Sheets, sheetId: string): Promise<string> => {
   const snapshot = await readSnapshot(sheets, sheetId);
@@ -16,6 +17,8 @@ export const ensureSchemaUpToDate = async (sheets: sheets_v4.Sheets, sheetId: st
   if (!schemaVersionRow || schemaVersionRow.value >= CURRENT_SCHEMA_VERSION) {
     return;
   }
+
+  await runMigrations(sheets, sheetId, schemaVersionRow.value, CURRENT_SCHEMA_VERSION);
 
   await updateRow(sheets, sheetId, SHEET_TABS.metadata, schemaVersionRow.rowNumber, [
     'schemaVersion',

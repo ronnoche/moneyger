@@ -4,6 +4,7 @@ import type {
   Budget,
   BudgetSummary,
   BudgetsIndexResponse,
+  CategoryAssignment,
   Transaction,
   UserCashFlow,
 } from '@/lib/domain/types';
@@ -82,6 +83,32 @@ export const buildBudgetsIndex = (
     monthly_leftover: monthly_leftover_assigned + monthly_leftover_activity,
     monthly_assigned_total,
     monthly_activity_total,
+  };
+};
+
+export const buildAvailableFromAssignments = (
+  monthKey: string,
+  assignments: CategoryAssignment[],
+  transactions: Transaction[],
+): {
+  assignedTotal: number;
+  activityTotal: number;
+  availableTotal: number;
+} => {
+  const { start, end } = monthBounds(`${monthKey}-01`);
+
+  const assignedTotal = assignments
+    .filter((assignment) => assignment.month_key === monthKey)
+    .reduce((sum, assignment) => sum + parseAmount(assignment.assigned_amount), 0);
+
+  const activityTotal = transactions
+    .filter((txn) => isDateWithin(txn.transaction_date, start, end))
+    .reduce((sum, txn) => sum + parseAmount(txn.transaction_amount), 0);
+
+  return {
+    assignedTotal,
+    activityTotal,
+    availableTotal: assignedTotal + activityTotal,
   };
 };
 
