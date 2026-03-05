@@ -128,3 +128,23 @@ a {
 .table-scroll {
   overflow-x: auto;
 }
+
+.marker-highlight {
+  display: inline-block;
+  width: fit-content;
+  margin-top: 0.5rem;
+  padding: 0.05em 0.32em 0.12em;
+  border-radius: 0.25rem;
+  color: var(--brand-foreground);
+  font-size: clamp(2.5rem, 5.2vw, 4.5rem);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-transform: uppercase;
+  font-style: italic;
+  background-image: linear-gradient(
+    120deg,
+    rgba(36, 124, 109, 0.15),
+    rgba(36, 124, 109, 0.7)
+  );
+}

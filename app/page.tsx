@@ -19,7 +19,10 @@ export default async function HomePage() {
             Simple envelope-style budgeting
           </p>
           <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl">
-            Give every dollar a job with <span className="text-brand">Moneyger</span>
+            Give every dollar a job with
+            <span className="marker-highlight block">
+              Moneyger
+            </span>
           </h1>
           <p className="max-w-3xl text-base text-muted-foreground md:text-lg">
             Moneyger is a YNAB-lite budget: envelope-style buckets, a clear plan for this month&apos;s money, and a calm view of what you can safely spend right now.
