@@ -7,10 +7,11 @@ import { nowIso, toAmountString } from '@/lib/domain/utils';
 import { appendRow, updateRow } from '@/lib/google/client';
 import { SHEET_HEADERS, SHEET_TABS } from '@/lib/google/schema';
 import { readSnapshot } from '@/lib/google/sheets-store';
+import { getCachedAccountsSnapshot, invalidateSheetSnapshots } from '@/lib/google/snapshotCache';
 import { deleteEntityRow, formatValidationError, nextId, toRowValues } from '@/lib/services/helpers';
 
 export const listAccounts = async (sheets: sheets_v4.Sheets, sheetId: string) => {
-  const snapshot = await readSnapshot(sheets, sheetId);
+  const snapshot = await getCachedAccountsSnapshot(sheets, sheetId);
   return snapshot.accounts.map((account) => ({
     ...account,
     available_balance: accountAvailableBalance(account, snapshot.accountBudgets).toFixed(2),
@@ -42,6 +43,7 @@ export const createAccount = async (sheets: sheets_v4.Sheets, sheetId: string, i
   };
 
   await appendRow(sheets, sheetId, SHEET_TABS.accounts, toRowValues(SHEET_HEADERS[SHEET_TABS.accounts], created));
+  invalidateSheetSnapshots(sheetId);
   return created;
 };
 
@@ -83,6 +85,7 @@ export const updateAccount = async (
     toRowValues(SHEET_HEADERS[SHEET_TABS.accounts], updated),
   );
 
+  invalidateSheetSnapshots(sheetId);
   return updated;
 };
 
@@ -131,6 +134,7 @@ export const patchAccountBalance = async (
     existing.rowNumber,
     toRowValues(SHEET_HEADERS[SHEET_TABS.accounts], updated),
   );
+  invalidateSheetSnapshots(sheetId);
   return updated;
 };
 

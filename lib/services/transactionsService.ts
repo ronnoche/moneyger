@@ -6,6 +6,7 @@ import { nowIso, toAmountString } from '@/lib/domain/utils';
 import { appendRow, updateRow } from '@/lib/google/client';
 import { SHEET_HEADERS, SHEET_TABS } from '@/lib/google/schema';
 import { readSnapshot } from '@/lib/google/sheets-store';
+import { getCachedTransactionsSnapshot, invalidateSheetSnapshots } from '@/lib/google/snapshotCache';
 import { deleteEntityRow, formatValidationError, nextId, toRowValues } from '@/lib/services/helpers';
 import { findOrCreatePayee } from '@/lib/services/payeesService';
 
@@ -21,7 +22,7 @@ export const listTransactions = async (
   sheetId: string,
   filters: TransactionFilters = {},
 ) => {
-  const snapshot = await readSnapshot(sheets, sheetId);
+  const snapshot = await getCachedTransactionsSnapshot(sheets, sheetId);
   let transactions = snapshot.transactions;
 
   if (filters.accountId) {
@@ -107,6 +108,7 @@ export const createTransaction = async (sheets: sheets_v4.Sheets, sheetId: strin
     toRowValues(SHEET_HEADERS[SHEET_TABS.accounts], updatedAccount),
   );
 
+  invalidateSheetSnapshots(sheetId);
   return created;
 };
 
@@ -186,6 +188,7 @@ export const updateTransaction = async (
     toRowValues(SHEET_HEADERS[SHEET_TABS.transactions], updatedTransaction),
   );
 
+  invalidateSheetSnapshots(sheetId);
   return updatedTransaction;
 };
 
@@ -217,5 +220,6 @@ export const deleteTransaction = async (sheets: sheets_v4.Sheets, sheetId: strin
   }
 
   await deleteEntityRow(sheets, sheetId, SHEET_TABS.transactions, existing);
+  invalidateSheetSnapshots(sheetId);
 };
 

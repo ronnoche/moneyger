@@ -4,6 +4,7 @@ import { nowIso } from '@/lib/domain/utils';
 import { appendRow } from '@/lib/google/client';
 import { SHEET_HEADERS, SHEET_TABS } from '@/lib/google/schema';
 import { readSnapshot } from '@/lib/google/sheets-store';
+import { invalidateSheetSnapshots } from '@/lib/google/snapshotCache';
 import { nextId, toRowValues } from '@/lib/services/helpers';
 
 export const listPayees = async (sheets: sheets_v4.Sheets, sheetId: string) => {
@@ -29,6 +30,7 @@ export const findOrCreatePayee = async (sheets: sheets_v4.Sheets, sheetId: strin
     updated_at: now,
   };
   await appendRow(sheets, sheetId, SHEET_TABS.payees, toRowValues(SHEET_HEADERS[SHEET_TABS.payees], created));
+  invalidateSheetSnapshots(sheetId);
   return { ...created, rowNumber: -1 };
 };
 
