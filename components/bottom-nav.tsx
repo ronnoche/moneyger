@@ -111,13 +111,13 @@ export function BottomNav() {
             onClick={() => setMenuOpen(false)}
             type="button"
           />
-          <div className="absolute bottom-full right-0 z-40 mb-3 w-2/3 rounded-lg border border-surface-border bg-surface-elevated p-4 text-sm text-foreground shadow-lg">
+          <div className="absolute bottom-full right-0 z-40 mb-3 w-[40%] rounded-lg border border-surface-border bg-surface-strong p-4 text-sm text-foreground shadow-lg text-right">
             <p className="mb-3 truncate">{data?.user?.email}</p>
             <div className="mb-4 flex justify-end">
               <ThemeToggle />
             </div>
             <Button
-              className="w-full"
+              className="ml-auto"
               onClick={() => signOut({ callbackUrl: '/' })}
               size="sm"
               type="button"

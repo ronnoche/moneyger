@@ -1013,17 +1013,19 @@ export function BudgetWorkspaceShell() {
                                         </button>
                                       )}
                                     </div>
-                                    <button
-                                      className={buttonClassName({
-                                        variant: 'secondary',
-                                        size: 'sm',
-                                        className: 'ml-1 hidden h-7 px-2 text-[11px] md:inline-flex',
-                                      })}
-                                      onClick={() => startCreateCategory(group.id, false)}
-                                      type="button"
-                                    >
-                                      + Bucket List
-                                    </button>
+                                    <div className="ml-1 hidden md:inline-flex">
+                                      <button
+                                        className={buttonClassName({
+                                          variant: 'secondary',
+                                          size: 'sm',
+                                          className: 'h-7 px-2 text-[11px]',
+                                        })}
+                                        onClick={() => startCreateCategory(group.id, false)}
+                                        type="button"
+                                      >
+                                        + Bucket List
+                                      </button>
+                                    </div>
                                     <button
                                       className={buttonClassName({
                                         variant: 'secondary',
