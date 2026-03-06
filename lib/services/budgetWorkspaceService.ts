@@ -56,6 +56,29 @@ export interface BudgetWorkspaceResponse {
 
 const monthKeyFromDate = (date: Date): string => format(date, 'yyyy-MM');
 
+export const buildPersistentAssignedByCategory = (
+  assignments: CategoryAssignment[],
+): Map<string, number> => {
+  const latestByCategory = new Map<string, { month_key: string; assigned_amount: number }>();
+
+  assignments.forEach((assignment) => {
+    const assigned_amount = parseAmount(assignment.assigned_amount);
+    const current = latestByCategory.get(assignment.category_id);
+    if (!current || assignment.month_key >= current.month_key) {
+      latestByCategory.set(assignment.category_id, {
+        month_key: assignment.month_key,
+        assigned_amount,
+      });
+    }
+  });
+
+  const persistentByCategory = new Map<string, number>();
+  latestByCategory.forEach((value, categoryId) => {
+    persistentByCategory.set(categoryId, value.assigned_amount);
+  });
+  return persistentByCategory;
+};
+
 const buildWorkspace = (
   snapshot: SheetsSnapshot,
   monthKey: string,
@@ -164,10 +187,13 @@ const buildWorkspace = (
   activity_total = activityTotal;
   available_total = availableTotal;
 
+  const persistentAssignedTotal = Array.from(buildPersistentAssignedByCategory(snapshot.categoryAssignments).values())
+    .reduce((sum, assigned) => sum + assigned, 0);
+
   const ready_to_assign =
     snapshot.accounts
       .filter((account) => account.account_type === 'cash' || account.account_type === 'savings')
-      .reduce((sum, account) => sum + parseAmount(account.account_balance), 0) - assigned_total;
+      .reduce((sum, account) => sum + parseAmount(account.account_balance), 0) - persistentAssignedTotal;
 
   return {
     groups,

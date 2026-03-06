@@ -3,13 +3,63 @@
 import { useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { MonthNavigator } from '@/components/month-navigator';
 import { Card, buttonClassName } from '@/components/ui';
-import Link from 'next/link';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-states';
 import type { BudgetWorkspaceCategory, BudgetWorkspaceGroup, BudgetWorkspaceResponse } from '@/lib/services/budgetWorkspaceService';
 
-interface WorkspaceState extends BudgetWorkspaceResponse {}
+type WorkspaceState = BudgetWorkspaceResponse;
+
+export type WorkspaceFilter = 'all' | 'underfunded' | 'overfunded' | 'snoozed';
+
+const filterTabs: Array<{ key: WorkspaceFilter; label: string }> = [
+  { key: 'all', label: 'All' },
+  { key: 'underfunded', label: 'Underfunded' },
+  { key: 'overfunded', label: 'Overfunded' },
+  { key: 'snoozed', label: 'Snoozed' },
+];
+
+const formatCurrency = (value: number): string =>
+  value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const toAssignedDraftMap = (groups: BudgetWorkspaceGroup[]): Record<string, string> => {
+  const drafts: Record<string, string> = {};
+  groups.forEach((group) => {
+    group.categories.forEach((category) => {
+      drafts[category.id] = category.assigned.toFixed(2);
+    });
+  });
+  return drafts;
+};
+
+const normalize = (value: string): string => value.trim().toLowerCase();
+
+export const isUnderfunded = (category: BudgetWorkspaceCategory): boolean => {
+  if (category.goal && category.goal.target_amount > 0) {
+    return category.available < category.goal.target_amount;
+  }
+  return category.available < 0;
+};
+
+export const isOverfunded = (category: BudgetWorkspaceCategory): boolean => {
+  if (category.goal && category.goal.target_amount > 0) {
+    return category.available > category.goal.target_amount;
+  }
+  return category.available > 0 && category.assigned > 0;
+};
+
+export const isSnoozed = (category: BudgetWorkspaceCategory): boolean => {
+  if (!category.goal) return false;
+  return category.goal.cadence === '' && category.goal.target_date === '';
+};
+
+export const categoryMatchesFilter = (category: BudgetWorkspaceCategory, filter: WorkspaceFilter): boolean => {
+  if (filter === 'all') return true;
+  if (filter === 'underfunded') return isUnderfunded(category);
+  if (filter === 'overfunded') return isOverfunded(category);
+  return isSnoozed(category);
+};
 
 export function BudgetWorkspaceShell() {
   const searchParams = useSearchParams();
@@ -22,6 +72,28 @@ export function BudgetWorkspaceShell() {
   const [data, setData] = useState<WorkspaceState | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [detailsCollapsed, setDetailsCollapsed] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<WorkspaceFilter>('all');
+  const [collapsedGroupIds, setCollapsedGroupIds] = useState<string[]>([]);
+  const [assignedDrafts, setAssignedDrafts] = useState<Record<string, string>>({});
+  const [savingAssignedId, setSavingAssignedId] = useState<string | null>(null);
+
+  const [isCreateBucketOpen, setCreateBucketOpen] = useState(false);
+  const [newBucketName, setNewBucketName] = useState('');
+  const [newBucketError, setNewBucketError] = useState('');
+  const [isCreatingBucket, setCreatingBucket] = useState(false);
+
+  const [categoryCreateGroupId, setCategoryCreateGroupId] = useState<string | null>(null);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryError, setNewCategoryError] = useState('');
+  const [isCreatingCategory, setCreatingCategory] = useState(false);
+  const [useMobileCategorySheet, setUseMobileCategorySheet] = useState(false);
+  const [isTargetEditorOpen, setTargetEditorOpen] = useState(false);
+  const [targetAmountDraft, setTargetAmountDraft] = useState('0.00');
+  const [isTargetIndefinite, setTargetIndefinite] = useState(false);
+  const [targetCadenceDraft, setTargetCadenceDraft] = useState('');
+  const [targetDateDraft, setTargetDateDraft] = useState('');
+  const [targetFormError, setTargetFormError] = useState('');
+  const [isSavingTarget, setSavingTarget] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -30,36 +102,75 @@ export function BudgetWorkspaceShell() {
       .then((result: WorkspaceState) => {
         setData(result);
         setError('');
-        if (!selectedCategoryId && result.groups.length > 0) {
-          const first = result.groups[0]?.categories[0];
-          if (first) {
-            setSelectedCategoryId(first.id);
+        setAssignedDrafts(toAssignedDraftMap(result.groups));
+        setSelectedCategoryId((previousSelectedCategoryId) => {
+          if (previousSelectedCategoryId) {
+            const stillExists = result.groups.some((group) =>
+              group.categories.some((category) => category.id === previousSelectedCategoryId),
+            );
+            if (stillExists) {
+              return previousSelectedCategoryId;
+            }
           }
-        }
+          return result.groups[0]?.categories[0]?.id ?? null;
+        });
       })
       .catch((fetchError: Error) => setError(fetchError.message))
       .finally(() => setLoading(false));
   }, [monthKey]);
-  const handleAssignedChange = async (categoryId: string, value: string) => {
+
+  const startCreateCategory = (groupId: string, mobile: boolean) => {
+    setCategoryCreateGroupId(groupId);
+    setUseMobileCategorySheet(mobile);
+    setNewCategoryName('');
+    setNewCategoryError('');
+  };
+
+  const handleAssignedChange = async (categoryId: string) => {
     if (!data) return;
-    const parsed = Number.parseFloat(value);
+    const category = data.groups.flatMap((group) => group.categories).find((item) => item.id === categoryId);
+    if (!category) return;
+    const draftValue = assignedDrafts[categoryId] ?? category.assigned.toFixed(2);
+    const parsed = Number.parseFloat(draftValue);
     if (Number.isNaN(parsed)) {
+      setAssignedDrafts((previous) => ({ ...previous, [categoryId]: category.assigned.toFixed(2) }));
       return;
     }
+    const previousData = data;
+    const amount = Number(parsed.toFixed(2));
+    if (amount === category.assigned) {
+      setAssignedDrafts((previous) => ({ ...previous, [categoryId]: amount.toFixed(2) }));
+      return;
+    }
+    setSavingAssignedId(categoryId);
+    const delta = amount - category.assigned;
 
     const optimistic: WorkspaceState = {
-      ...data,
-      groups: data.groups.map((group) => ({
+      ...previousData,
+      summary: {
+        ...previousData.summary,
+        assigned_total: previousData.summary.assigned_total + delta,
+        available_total: previousData.summary.available_total + delta,
+        ready_to_assign: previousData.summary.ready_to_assign - delta,
+      },
+      groups: previousData.groups.map((group) => ({
         ...group,
         categories: group.categories.map((category) =>
-          category.id === categoryId ? { ...category, assigned: parsed } : category,
+          category.id === categoryId
+            ? {
+                ...category,
+                assigned: amount,
+                available: category.available + delta,
+              }
+            : category,
         ),
       })),
     };
     setData(optimistic);
+    setAssignedDrafts((previous) => ({ ...previous, [categoryId]: amount.toFixed(2) }));
 
     try {
-      await fetch('/api/budget-workspace', {
+      const response = await fetch('/api/budget-workspace', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -68,14 +179,163 @@ export function BudgetWorkspaceShell() {
           action: 'update_assigned',
           category_id: categoryId,
           month_key: monthKey,
-          assigned_amount: parsed,
+          assigned_amount: amount,
         }),
       });
+      if (!response.ok) {
+        throw new Error('Failed to update assigned');
+      }
     } catch (updateError: unknown) {
       setError(updateError instanceof Error ? updateError.message : 'Failed to update assigned');
-      setData(data);
+      setData(previousData);
+      setAssignedDrafts((previous) => ({ ...previous, [categoryId]: category.assigned.toFixed(2) }));
+    } finally {
+      setSavingAssignedId(null);
     }
   };
+
+  const handleCreateBucket = async () => {
+    if (!data) return;
+    const name = newBucketName.trim();
+    if (!name) {
+      setNewBucketError('Bucket name is required.');
+      return;
+    }
+    const duplicate = data.groups.some((group) => normalize(group.name) === normalize(name));
+    if (duplicate) {
+      setNewBucketError('Bucket name already exists.');
+      return;
+    }
+
+    setCreatingBucket(true);
+    setNewBucketError('');
+    try {
+      const response = await fetch('/api/budget-workspace', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'create_group',
+          name,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create bucket');
+      }
+      const result = await response.json();
+      const group = result.group as BudgetWorkspaceGroup;
+      setData((previous) => {
+        if (!previous) return previous;
+        return {
+          ...previous,
+          groups: [...previous.groups, { ...group, categories: [] }],
+        };
+      });
+      setCollapsedGroupIds((previous) => previous.filter((id) => id !== group.id));
+      setNewBucketName('');
+      setCreateBucketOpen(false);
+    } catch (createError: unknown) {
+      setNewBucketError(createError instanceof Error ? createError.message : 'Failed to create bucket');
+    } finally {
+      setCreatingBucket(false);
+    }
+  };
+
+  const handleCreateCategory = async () => {
+    if (!data || !categoryCreateGroupId) return;
+    const name = newCategoryName.trim();
+    if (!name) {
+      setNewCategoryError('Bucket list name is required.');
+      return;
+    }
+    const parentGroup = data.groups.find((group) => group.id === categoryCreateGroupId);
+    if (!parentGroup) {
+      setNewCategoryError('Bucket was not found.');
+      return;
+    }
+    const duplicate = parentGroup.categories.some((category) => normalize(category.name) === normalize(name));
+    if (duplicate) {
+      setNewCategoryError('Bucket list name already exists in this bucket.');
+      return;
+    }
+
+    setCreatingCategory(true);
+    setNewCategoryError('');
+    try {
+      const response = await fetch('/api/budget-workspace', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'create_category',
+          group_id: categoryCreateGroupId,
+          name,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create bucket list');
+      }
+      const result = await response.json();
+      const newCategory = result.category as BudgetWorkspaceCategory;
+      const workspaceCategory: BudgetWorkspaceCategory = {
+        ...newCategory,
+        assigned: 0,
+        activity: 0,
+        available: 0,
+        goal: null,
+      };
+      setData((previous) => {
+        if (!previous) return previous;
+        return {
+          ...previous,
+          groups: previous.groups.map((group) =>
+            group.id === categoryCreateGroupId
+              ? {
+                  ...group,
+                  categories: [...group.categories, workspaceCategory],
+                }
+              : group,
+          ),
+        };
+      });
+      setAssignedDrafts((previous) => ({ ...previous, [workspaceCategory.id]: '0.00' }));
+      setCollapsedGroupIds((previous) => previous.filter((id) => id !== categoryCreateGroupId));
+      setSelectedCategoryId(workspaceCategory.id);
+      setDetailsCollapsed(false);
+      setCategoryCreateGroupId(null);
+      setNewCategoryName('');
+      setUseMobileCategorySheet(false);
+    } catch (createError: unknown) {
+      setNewCategoryError(createError instanceof Error ? createError.message : 'Failed to create bucket list');
+    } finally {
+      setCreatingCategory(false);
+    }
+  };
+
+  const filteredGroups = useMemo(() => {
+    if (!data) return [];
+    return data.groups
+      .map((group) => ({
+        ...group,
+        categories: group.categories.filter((category) => categoryMatchesFilter(category, activeFilter)),
+      }))
+      .filter((group) => group.categories.length > 0 || activeFilter === 'all');
+  }, [activeFilter, data]);
+
+  const filterCounts = useMemo(() => {
+    if (!data) {
+      return { all: 0, underfunded: 0, overfunded: 0, snoozed: 0 };
+    }
+    const categories = data.groups.flatMap((group) => group.categories);
+    return {
+      all: categories.length,
+      underfunded: categories.filter(isUnderfunded).length,
+      overfunded: categories.filter(isOverfunded).length,
+      snoozed: categories.filter(isSnoozed).length,
+    };
+  }, [data]);
 
   const selectedCategory: BudgetWorkspaceCategory | undefined = useMemo(() => {
     if (!data || !selectedCategoryId) return undefined;
@@ -86,23 +346,107 @@ export function BudgetWorkspaceShell() {
     return undefined;
   }, [data, selectedCategoryId]);
 
+  useEffect(() => {
+    if (!selectedCategory) {
+      setTargetEditorOpen(false);
+      setTargetAmountDraft('0.00');
+      setTargetIndefinite(false);
+      setTargetCadenceDraft('');
+      setTargetDateDraft('');
+      setTargetFormError('');
+      return;
+    }
+    setTargetEditorOpen(false);
+    setTargetAmountDraft((selectedCategory.goal?.target_amount ?? 0).toFixed(2));
+    setTargetIndefinite(
+      selectedCategory.goal ? selectedCategory.goal.goal_type === 'monthly_savings' || !selectedCategory.goal.target_date : false,
+    );
+    setTargetCadenceDraft(selectedCategory.goal?.cadence ?? '');
+    setTargetDateDraft(selectedCategory.goal?.target_date ?? '');
+    setTargetFormError('');
+  }, [selectedCategory]);
+
+  const refreshWorkspace = async () => {
+    const response = await fetch(`/api/budget-workspace?month_key=${monthKey}`);
+    if (!response.ok) {
+      throw new Error('Failed to refresh budget workspace');
+    }
+    const result = (await response.json()) as WorkspaceState;
+    setData(result);
+    setAssignedDrafts(toAssignedDraftMap(result.groups));
+    setSelectedCategoryId((previousSelectedCategoryId) => {
+      if (previousSelectedCategoryId) {
+        const stillExists = result.groups.some((group) =>
+          group.categories.some((category) => category.id === previousSelectedCategoryId),
+        );
+        if (stillExists) {
+          return previousSelectedCategoryId;
+        }
+      }
+      return result.groups[0]?.categories[0]?.id ?? null;
+    });
+  };
+
+  const handleTargetSave = async () => {
+    if (!selectedCategory) return;
+    const parsedTargetAmount = Number.parseFloat(targetAmountDraft);
+    if (Number.isNaN(parsedTargetAmount) || parsedTargetAmount < 0) {
+      setTargetFormError('Target amount must be 0 or greater.');
+      return;
+    }
+    if (!isTargetIndefinite && !targetDateDraft) {
+      setTargetFormError('Target date is required when repeat is off.');
+      return;
+    }
+    setSavingTarget(true);
+    setTargetFormError('');
+    try {
+      const response = await fetch(`/api/budgets/${selectedCategory.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          budget_name: selectedCategory.name,
+          target_amount: parsedTargetAmount,
+          is_indefinite: isTargetIndefinite,
+          cadence: isTargetIndefinite ? targetCadenceDraft : '',
+          target_date: isTargetIndefinite ? '' : targetDateDraft,
+        }),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({ error: { message: 'Failed to update target' } }));
+        throw new Error(result.error?.message ?? 'Failed to update target');
+      }
+      await refreshWorkspace();
+      setTargetEditorOpen(false);
+    } catch (saveError: unknown) {
+      setTargetFormError(saveError instanceof Error ? saveError.message : 'Failed to update target');
+    } finally {
+      setSavingTarget(false);
+    }
+  };
+
   const summaryCard = useMemo(() => {
     const readyToAssign = data?.summary.ready_to_assign ?? 0;
     if (readyToAssign === 0) {
       return {
         title: 'All are assigned',
-        value: '0',
+        value: formatCurrency(0),
+        tone: 'text-foreground',
       };
     }
     if (readyToAssign > 0) {
       return {
         title: 'Ready to Assign',
-        value: readyToAssign.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }),
+        value: formatCurrency(readyToAssign),
+        tone: 'text-foreground',
       };
     }
     return {
       title: 'Over assigned',
-      value: readyToAssign.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }),
+      value: formatCurrency(readyToAssign),
+      tone: 'text-danger',
     };
   }, [data]);
 
@@ -115,22 +459,52 @@ export function BudgetWorkspaceShell() {
         </Card>
         <Card className="flex flex-col justify-center bg-brand-soft px-4 py-2.5 text-right" dense>
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{summaryCard.title}</p>
-          <p className="text-xl font-semibold text-foreground md:text-2xl">{summaryCard.value}</p>
-          <div className="mt-2">
-            <button
-              className={buttonClassName({
-                size: 'sm',
-                variant: 'secondary',
-                className: 'h-7 px-2.5 text-[11px]',
-              })}
-              onClick={() => setDetailsCollapsed((collapsed) => !collapsed)}
-              type="button"
-            >
-              {detailsCollapsed ? 'Expand' : 'Collapse'}
-            </button>
-          </div>
+          <p className={`text-xl font-semibold md:text-2xl ${summaryCard.tone}`}>{summaryCard.value}</p>
         </Card>
       </div>
+
+      <Card className="flex flex-wrap items-center gap-2 px-3 py-2.5 md:grid md:grid-cols-[auto_1fr_auto]" dense>
+        <button
+          className={buttonClassName({ size: 'sm' })}
+          onClick={() => {
+            setCreateBucketOpen(true);
+            setNewBucketError('');
+            setNewBucketName('');
+          }}
+          type="button"
+        >
+          + Add Bucket
+        </button>
+
+        <div className="flex flex-1 flex-wrap items-center gap-1 md:justify-center">
+          {filterTabs.map((tab) => (
+            <button
+              key={tab.key}
+              className={buttonClassName({
+                size: 'sm',
+                variant: activeFilter === tab.key ? 'secondary' : 'ghost',
+                className: 'h-8 px-2.5 text-xs',
+              })}
+              onClick={() => setActiveFilter(tab.key)}
+              type="button"
+            >
+              {tab.label} ({filterCounts[tab.key]})
+            </button>
+          ))}
+        </div>
+
+        <button
+          className={buttonClassName({
+            size: 'sm',
+            variant: 'secondary',
+            className: 'h-8 px-2.5 text-xs',
+          })}
+          onClick={() => setDetailsCollapsed((previous) => !previous)}
+          type="button"
+        >
+          {detailsCollapsed ? 'Expand Target' : 'Collapse Target'}
+        </button>
+      </Card>
 
       {loading ? <LoadingState label="Loading buckets workspace..." /> : null}
       {error ? <ErrorState message={error} /> : null}
@@ -142,139 +516,473 @@ export function BudgetWorkspaceShell() {
               detailsCollapsed ? 'md:grid-cols-1' : 'md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]'
             }`}
           >
-          <Card className="flex min-h-[400px] flex-col overflow-hidden">
-            <div className="flex items-center justify-between border-b border-surface-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              <div className="flex flex-1 items-center gap-4">
-                <span className="w-1/3">Bucket</span>
-                <span className="w-1/3">Bucket List</span>
-              </div>
-              <div className="flex min-w-[260px] flex-none items-center justify-end gap-6">
-                <span>Assigned</span>
-                <span>Activity</span>
-                <span>Available</span>
-              </div>
-            </div>
-
-            {data.groups.length === 0 ? (
-              <div className="flex flex-1 items-center justify-center p-6">
-                <EmptyState
-                  title="No bucket lists yet"
-                  description="Create your first bucket and bucket list to start budgeting."
-                  action={
-                    <Link className={buttonClassName({ size: 'sm' })} href="/budgets/new">
-                      Add Bucket
-                    </Link>
-                  }
-                />
-              </div>
-            ) : (
-              <div className="table-scroll flex-1 overflow-auto">
-                <table className="w-full border-collapse text-sm">
-                  <tbody>
-                    {data.groups.map((group: BudgetWorkspaceGroup) => (
-                      <Fragment key={group.id}>
-                        <tr className="bg-muted/40">
-                          <td className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            {group.name}
+            <Card className="flex min-h-[400px] flex-col overflow-hidden">
+              {data.groups.length === 0 ? (
+                <div className="flex flex-1 items-center justify-center p-6">
+                  <EmptyState
+                    title="No buckets yet"
+                    description="Create your first bucket to start organizing bucket lists."
+                    action={
+                      <button
+                        className={buttonClassName({ size: 'sm' })}
+                        onClick={() => setCreateBucketOpen(true)}
+                        type="button"
+                      >
+                        + Add Bucket
+                      </button>
+                    }
+                  />
+                </div>
+              ) : (
+                <div className="table-scroll flex-1 overflow-auto">
+                  <table className="w-full border-collapse text-sm">
+                    <thead className="sticky top-0 z-10 bg-background">
+                      <tr className="border-b border-surface-border text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        <th className="px-4 py-2">Buckets</th>
+                        <th className="px-2 py-2 text-right">Allocated</th>
+                        <th className="px-2 py-2 text-right">Spent</th>
+                        <th className="px-2 py-2 text-right">Balance</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredGroups.length === 0 ? (
+                        <tr>
+                          <td className="px-4 py-6 text-sm text-muted-foreground" colSpan={4}>
+                            No bucket lists match the active filter.
                           </td>
-                          <td colSpan={4} />
                         </tr>
-                        {group.categories.map((category) => {
-                          const isSelected = category.id === selectedCategoryId;
+                      ) : (
+                        filteredGroups.map((group: BudgetWorkspaceGroup) => {
+                          const isCollapsed = collapsedGroupIds.includes(group.id);
                           return (
-                            <tr
-                              key={category.id}
-                              className={`cursor-pointer border-b border-surface-border hover:bg-surface-elevated ${
-                                isSelected ? 'bg-surface-elevated' : ''
-                              }`}
-                              onClick={() => {
-                                setSelectedCategoryId(category.id);
-                                setDetailsCollapsed(false);
-                              }}
-                            >
-                              <td className="px-4 py-2 text-sm text-foreground">
-                                {category.name}
-                              </td>
-                              <td className="px-2 py-2 text-right text-foreground">
-                                <input
-                                  className="w-24 rounded-md border border-surface-border bg-background px-2 py-1 text-right text-sm"
-                                  defaultValue={category.assigned.toFixed(2)}
-                                  inputMode="decimal"
-                                  onBlur={(event) =>
-                                    handleAssignedChange(category.id, event.target.value)
-                                  }
-                                  onClick={() => {
-                                    setSelectedCategoryId(category.id);
-                                    setDetailsCollapsed(false);
-                                  }}
-                                />
-                              </td>
-                              <td className="px-2 py-2 text-right text-foreground">
-                                {category.activity.toFixed(2)}
-                              </td>
-                              <td className="px-2 py-2 text-right text-foreground">
-                                {category.available.toFixed(2)}
-                              </td>
-                            </tr>
+                            <Fragment key={group.id}>
+                              <tr className="bg-muted/40">
+                                <td className="px-4 py-2">
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      aria-label={isCollapsed ? `Expand ${group.name}` : `Collapse ${group.name}`}
+                                      className={buttonClassName({
+                                        variant: 'ghost',
+                                        size: 'sm',
+                                        className: 'h-7 w-7 px-0 text-muted-foreground hover:text-foreground',
+                                      })}
+                                      onClick={() =>
+                                        setCollapsedGroupIds((previous) =>
+                                          previous.includes(group.id)
+                                            ? previous.filter((id) => id !== group.id)
+                                            : [...previous, group.id],
+                                        )
+                                      }
+                                      type="button"
+                                    >
+                                      {isCollapsed ? (
+                                        <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={2.75} />
+                                      ) : (
+                                        <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={2.75} />
+                                      )}
+                                    </button>
+                                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                      {group.name}
+                                    </span>
+                                    <button
+                                      className={buttonClassName({
+                                        variant: 'secondary',
+                                        size: 'sm',
+                                        className: 'ml-2 hidden h-7 px-2 text-[11px] md:inline-flex',
+                                      })}
+                                      onClick={() => startCreateCategory(group.id, false)}
+                                      type="button"
+                                    >
+                                      + Add Bucket List
+                                    </button>
+                                    <button
+                                      className={buttonClassName({
+                                        variant: 'secondary',
+                                        size: 'sm',
+                                        className: 'ml-1 h-7 px-2 text-[11px] md:hidden',
+                                      })}
+                                      onClick={() => startCreateCategory(group.id, true)}
+                                      type="button"
+                                    >
+                                      + List
+                                    </button>
+                                  </div>
+                                </td>
+                                <td colSpan={3} />
+                              </tr>
+
+                              {categoryCreateGroupId === group.id && !useMobileCategorySheet ? (
+                                <tr className="border-b border-surface-border bg-surface-elevated/40">
+                                  <td className="px-6 py-2" colSpan={4}>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <input
+                                        aria-label="Bucket list name"
+                                        className="w-full rounded-md border border-surface-border bg-background px-2 py-1 text-sm md:w-72"
+                                        maxLength={80}
+                                        onChange={(event) => setNewCategoryName(event.target.value)}
+                                        onKeyDown={(event) => {
+                                          if (event.key === 'Enter') {
+                                            event.preventDefault();
+                                            handleCreateCategory();
+                                          }
+                                          if (event.key === 'Escape') {
+                                            setCategoryCreateGroupId(null);
+                                            setNewCategoryName('');
+                                            setNewCategoryError('');
+                                          }
+                                        }}
+                                        placeholder="New bucket list name"
+                                        value={newCategoryName}
+                                      />
+                                      <button
+                                        className={buttonClassName({ size: 'sm', className: 'h-8 px-2.5 text-xs' })}
+                                        disabled={isCreatingCategory}
+                                        onClick={handleCreateCategory}
+                                        type="button"
+                                      >
+                                        {isCreatingCategory ? 'Creating...' : 'Add'}
+                                      </button>
+                                      <button
+                                        className={buttonClassName({ size: 'sm', variant: 'ghost', className: 'h-8 px-2.5 text-xs' })}
+                                        onClick={() => {
+                                          setCategoryCreateGroupId(null);
+                                          setNewCategoryName('');
+                                          setNewCategoryError('');
+                                        }}
+                                        type="button"
+                                      >
+                                        Cancel
+                                      </button>
+                                      {newCategoryError ? (
+                                        <p className="w-full text-xs text-danger">{newCategoryError}</p>
+                                      ) : null}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ) : null}
+
+                              {!isCollapsed
+                                ? group.categories.map((category) => {
+                                    const isSelected = category.id === selectedCategoryId;
+                                    return (
+                                      <tr
+                                        key={category.id}
+                                        className={`cursor-pointer border-b border-surface-border hover:bg-surface-elevated ${
+                                          isSelected ? 'bg-surface-elevated' : ''
+                                        }`}
+                                        onClick={() => {
+                                          setSelectedCategoryId(category.id);
+                                          setDetailsCollapsed(false);
+                                        }}
+                                      >
+                                        <td className="px-4 py-2 text-sm text-foreground">
+                                          <div className="flex items-center gap-2">
+                                            <span className="inline-block h-4 w-4 rounded-sm border border-surface-border" />
+                                            <span>{category.name}</span>
+                                          </div>
+                                        </td>
+                                        <td className="px-2 py-2 text-right text-foreground">
+                                          <input
+                                            aria-label={`${category.name} assigned amount`}
+                                            className="w-28 rounded-md border border-surface-border bg-background px-2 py-1 text-right text-sm"
+                                            inputMode="decimal"
+                                            onBlur={() => handleAssignedChange(category.id)}
+                                            onChange={(event) =>
+                                              setAssignedDrafts((previous) => ({
+                                                ...previous,
+                                                [category.id]: event.target.value,
+                                              }))
+                                            }
+                                            onClick={() => {
+                                              setSelectedCategoryId(category.id);
+                                              setDetailsCollapsed(false);
+                                            }}
+                                            onKeyDown={(event) => {
+                                              if (event.key === 'Enter') {
+                                                event.preventDefault();
+                                                handleAssignedChange(category.id);
+                                              }
+                                            }}
+                                            value={assignedDrafts[category.id] ?? category.assigned.toFixed(2)}
+                                          />
+                                          {savingAssignedId === category.id ? (
+                                            <p className="mt-1 text-[10px] text-muted-foreground">Saving...</p>
+                                          ) : null}
+                                        </td>
+                                        <td className="px-2 py-2 text-right text-foreground">
+                                          {formatCurrency(category.activity)}
+                                        </td>
+                                        <td className="px-2 py-2 text-right text-foreground">
+                                          {formatCurrency(category.available)}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })
+                                : null}
+                            </Fragment>
                           );
-                        })}
-                      </Fragment>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
-
-          {!detailsCollapsed ? (
-            <Card className="flex min-h-[400px] flex-col gap-4 p-4">
-            {selectedCategory ? (
-              <>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Bucket List
-                  </p>
-                  <p className="text-lg font-semibold text-foreground">{selectedCategory.name}</p>
+                        })
+                      )}
+                    </tbody>
+                  </table>
                 </div>
-
-                <div className="space-y-2 rounded-[var(--radius-md)] border border-surface-border bg-muted/40 p-3 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Available Balance</span>
-                    <span className="font-semibold text-foreground">
-                      {selectedCategory.available.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Assigned this month</span>
-                    <span className="text-foreground">{selectedCategory.assigned.toFixed(2)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Activity this month</span>
-                    <span className="text-foreground">{selectedCategory.activity.toFixed(2)}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Target
-                  </p>
-                  <button
-                    className={buttonClassName({ size: 'sm', variant: 'secondary' })}
-                    type="button"
-                  >
-                    {selectedCategory.goal ? 'Edit target' : 'Create Target'}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Select a bucket list from the left to see details.
-              </p>
-            )}
+              )}
             </Card>
-          ) : null}
+
+            {!detailsCollapsed ? (
+              <Card className="flex min-h-[400px] flex-col gap-4 p-4">
+                {selectedCategory ? (
+                  <>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Bucket List
+                      </p>
+                      <p className="text-lg font-semibold text-foreground">{selectedCategory.name}</p>
+                    </div>
+
+                    <div className="space-y-2 rounded-[var(--radius-md)] border border-surface-border bg-muted/40 p-3 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Available Balance</span>
+                        <span className="font-semibold text-foreground">
+                          {formatCurrency(selectedCategory.available)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Assigned this month</span>
+                        <span className="text-foreground">{formatCurrency(selectedCategory.assigned)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Activity this month</span>
+                        <span className="text-foreground">{formatCurrency(selectedCategory.activity)}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Target
+                      </p>
+                      <button
+                        className={buttonClassName({ size: 'sm', variant: 'secondary' })}
+                        onClick={() => {
+                          setTargetEditorOpen((previous) => !previous);
+                          setTargetFormError('');
+                        }}
+                        type="button"
+                      >
+                        {isTargetEditorOpen ? 'Close target editor' : selectedCategory.goal ? 'Edit target' : 'Create Target'}
+                      </button>
+                      {isTargetEditorOpen ? (
+                        <div className="space-y-3 rounded-[var(--radius-md)] border border-surface-border bg-muted/30 p-3 text-sm">
+                          <label className="block space-y-1">
+                            <span className="text-xs font-medium text-muted-foreground">Target Amount</span>
+                            <input
+                              className="w-full rounded-md border border-surface-border bg-background px-2 py-1.5 text-sm text-foreground"
+                              inputMode="decimal"
+                              min="0"
+                              onChange={(event) => setTargetAmountDraft(event.target.value)}
+                              type="number"
+                              value={targetAmountDraft}
+                            />
+                          </label>
+
+                          <label className="flex items-center gap-2 text-sm text-foreground">
+                            <input
+                              checked={isTargetIndefinite}
+                              className="h-4 w-4 rounded border-surface-border bg-surface-strong text-brand"
+                              onChange={(event) => setTargetIndefinite(event.target.checked)}
+                              type="checkbox"
+                            />
+                            Repeat this budget
+                          </label>
+
+                          {isTargetIndefinite ? (
+                            <label className="block space-y-1">
+                              <span className="text-xs font-medium text-muted-foreground">Cadence</span>
+                              <select
+                                className="w-full rounded-md border border-surface-border bg-background px-2 py-1.5 text-sm text-foreground"
+                                onChange={(event) => setTargetCadenceDraft(event.target.value)}
+                                value={targetCadenceDraft}
+                              >
+                                <option value="">Select cadence</option>
+                                <option value="weekly">weekly</option>
+                                <option value="bi_weekly">bi_weekly</option>
+                                <option value="monthly">monthly</option>
+                                <option value="quarterly">quarterly</option>
+                                <option value="yearly">yearly</option>
+                              </select>
+                            </label>
+                          ) : (
+                            <label className="block space-y-1">
+                              <span className="text-xs font-medium text-muted-foreground">Target Date</span>
+                              <input
+                                className="w-full rounded-md border border-surface-border bg-background px-2 py-1.5 text-sm text-foreground"
+                                onChange={(event) => setTargetDateDraft(event.target.value)}
+                                type="date"
+                                value={targetDateDraft}
+                              />
+                            </label>
+                          )}
+
+                          {targetFormError ? <p className="text-xs text-danger">{targetFormError}</p> : null}
+
+                          <div className="flex gap-2">
+                            <button
+                              className={buttonClassName({ size: 'sm' })}
+                              disabled={isSavingTarget}
+                              onClick={handleTargetSave}
+                              type="button"
+                            >
+                              {isSavingTarget ? 'Saving...' : 'Save Target'}
+                            </button>
+                            <button
+                              className={buttonClassName({ size: 'sm', variant: 'ghost' })}
+                              onClick={() => {
+                                setTargetEditorOpen(false);
+                                setTargetFormError('');
+                              }}
+                              type="button"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Select a bucket list from the left to see details.
+                  </p>
+                )}
+              </Card>
+            ) : null}
           </div>
         </>
+      ) : null}
+
+      {isCreateBucketOpen ? (
+        <div className="fixed inset-0 z-50 bg-black/40 p-4">
+          <div className="mx-auto mt-20 hidden w-full max-w-md rounded-[var(--radius-md)] border border-surface-border bg-background p-4 shadow-lg md:block">
+            <p className="text-sm font-semibold text-foreground">Add Bucket</p>
+            <p className="mt-1 text-xs text-muted-foreground">Create a bucket for organizing bucket lists.</p>
+            <input
+              autoFocus
+              className="mt-3 w-full rounded-md border border-surface-border bg-surface-strong px-3 py-2 text-sm text-foreground"
+              maxLength={60}
+              onChange={(event) => setNewBucketName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  handleCreateBucket();
+                }
+                if (event.key === 'Escape') {
+                  setCreateBucketOpen(false);
+                }
+              }}
+              placeholder="Bucket name"
+              value={newBucketName}
+            />
+            {newBucketError ? <p className="mt-2 text-xs text-danger">{newBucketError}</p> : null}
+            <div className="mt-3 flex justify-end gap-2">
+              <button
+                className={buttonClassName({ size: 'sm', variant: 'ghost' })}
+                onClick={() => setCreateBucketOpen(false)}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className={buttonClassName({ size: 'sm' })}
+                disabled={isCreatingBucket}
+                onClick={handleCreateBucket}
+                type="button"
+              >
+                {isCreatingBucket ? 'Creating...' : 'Create Bucket'}
+              </button>
+            </div>
+          </div>
+
+          <div className="fixed inset-x-0 bottom-0 rounded-t-[var(--radius-md)] border border-surface-border bg-background p-4 shadow-lg md:hidden">
+            <p className="text-sm font-semibold text-foreground">Add Bucket</p>
+            <input
+              autoFocus
+              className="mt-3 w-full rounded-md border border-surface-border bg-surface-strong px-3 py-2 text-sm text-foreground"
+              maxLength={60}
+              onChange={(event) => setNewBucketName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  handleCreateBucket();
+                }
+              }}
+              placeholder="Bucket name"
+              value={newBucketName}
+            />
+            {newBucketError ? <p className="mt-2 text-xs text-danger">{newBucketError}</p> : null}
+            <div className="mt-3 flex justify-end gap-2">
+              <button
+                className={buttonClassName({ size: 'sm', variant: 'ghost' })}
+                onClick={() => setCreateBucketOpen(false)}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className={buttonClassName({ size: 'sm' })}
+                disabled={isCreatingBucket}
+                onClick={handleCreateBucket}
+                type="button"
+              >
+                {isCreatingBucket ? 'Creating...' : 'Create Bucket'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {categoryCreateGroupId && useMobileCategorySheet ? (
+        <div className="fixed inset-0 z-50 bg-black/40 p-4 md:hidden">
+          <div className="fixed inset-x-0 bottom-0 rounded-t-[var(--radius-md)] border border-surface-border bg-background p-4 shadow-lg">
+            <p className="text-sm font-semibold text-foreground">Add Bucket List</p>
+            <input
+              autoFocus
+              className="mt-3 w-full rounded-md border border-surface-border bg-surface-strong px-3 py-2 text-sm text-foreground"
+              maxLength={80}
+              onChange={(event) => setNewCategoryName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  handleCreateCategory();
+                }
+              }}
+              placeholder="Bucket list name"
+              value={newCategoryName}
+            />
+            {newCategoryError ? <p className="mt-2 text-xs text-danger">{newCategoryError}</p> : null}
+            <div className="mt-3 flex justify-end gap-2">
+              <button
+                className={buttonClassName({ size: 'sm', variant: 'ghost' })}
+                onClick={() => {
+                  setCategoryCreateGroupId(null);
+                  setUseMobileCategorySheet(false);
+                  setNewCategoryName('');
+                  setNewCategoryError('');
+                }}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className={buttonClassName({ size: 'sm' })}
+                disabled={isCreatingCategory}
+                onClick={handleCreateCategory}
+                type="button"
+              >
+                {isCreatingCategory ? 'Creating...' : 'Add'}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );
