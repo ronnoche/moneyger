@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, ChevronDown, ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 import { MonthNavigator } from '@/components/month-navigator';
 import { Card, buttonClassName } from '@/components/ui';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-states';
@@ -881,102 +881,105 @@ export function BudgetWorkspaceShell() {
                               <tr className="bg-muted/40">
                                 <td className="px-4 py-2">
                                   <div className="flex items-center gap-2">
-                                    <div className="relative flex items-center gap-1">
-                                      <button
-                                        aria-label={isCollapsed ? `Expand ${group.name}` : `Collapse ${group.name}`}
-                                        className={buttonClassName({
-                                          variant: 'ghost',
-                                          size: 'sm',
-                                          className: 'h-7 w-7 px-0 text-muted-foreground hover:text-foreground',
-                                        })}
-                                        onClick={() =>
-                                          setCollapsedGroupIds((previous) =>
-                                            previous.includes(group.id)
-                                              ? previous.filter((id) => id !== group.id)
-                                              : [...previous, group.id],
-                                          )
-                                        }
-                                        type="button"
-                                      >
-                                        {isCollapsed ? (
-                                          <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={2.75} />
-                                        ) : (
-                                          <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={2.75} />
-                                        )}
-                                      </button>
-                                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                        {group.name}
-                                      </span>
-                                      <button
-                                        aria-label={`Rename ${group.name}`}
-                                        className={buttonClassName({
-                                          variant: 'ghost',
-                                          size: 'sm',
-                                          className: 'h-8 w-8 px-0 text-muted-foreground hover:text-foreground',
-                                        })}
-                                        onClick={() => openBucketRename(group)}
-                                        type="button"
-                                      >
-                                        <Pencil aria-hidden="true" className="h-4 w-4" />
-                                      </button>
+                                    <button
+                                      aria-label={isCollapsed ? `Expand ${group.name}` : `Collapse ${group.name}`}
+                                      className={buttonClassName({
+                                        variant: 'ghost',
+                                        size: 'sm',
+                                        className: 'h-7 w-7 px-0 text-muted-foreground hover:text-foreground',
+                                      })}
+                                      onClick={() =>
+                                        setCollapsedGroupIds((previous) =>
+                                          previous.includes(group.id)
+                                            ? previous.filter((id) => id !== group.id)
+                                            : [...previous, group.id],
+                                        )
+                                      }
+                                      type="button"
+                                    >
+                                      {isCollapsed ? (
+                                        <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={2.75} />
+                                      ) : (
+                                        <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={2.75} />
+                                      )}
+                                    </button>
+                                    <div className="relative flex items-center gap-2">
+                                      <input
+                                        aria-label={`Select ${group.name} for editing`}
+                                        checked={bucketEditGroupId === group.id}
+                                        className="h-4 w-4 rounded border-surface-border bg-surface-strong text-brand"
+                                        onChange={(event) => {
+                                          if (event.target.checked) {
+                                            openBucketRename(group);
+                                          } else {
+                                            closeBucketRename();
+                                          }
+                                        }}
+                                        onClick={(event) => event.stopPropagation()}
+                                        type="checkbox"
+                                      />
                                       {bucketEditGroupId === group.id ? (
                                         <div
-                                          className="absolute left-0 top-[calc(100%+6px)] z-30 w-[min(90vw,420px)] rounded-[var(--radius-md)] border border-surface-border bg-background p-2 shadow-lg"
+                                          className="relative flex flex-wrap items-center gap-2"
                                           ref={bucketEditPopoverRef}
                                         >
-                                          <div className="flex items-center gap-2">
-                                            <input
-                                              autoFocus
-                                              className="h-9 flex-1 rounded-md border border-surface-border bg-surface-strong px-3 text-sm text-foreground"
-                                              maxLength={60}
-                                              onChange={(event) => setBucketEditName(event.target.value)}
-                                              onKeyDown={(event) => {
-                                                if (event.key === 'Enter') {
-                                                  event.preventDefault();
-                                                  handleRenameBucket();
-                                                }
-                                                if (event.key === 'Escape') {
-                                                  closeBucketRename();
-                                                }
-                                              }}
-                                              placeholder={`Edit ${group.name}`}
-                                              value={bucketEditName}
-                                            />
-                                            <button
-                                              aria-label={`Delete ${group.name}`}
-                                              className={buttonClassName({
-                                                size: 'sm',
-                                                variant: 'ghost',
-                                                className:
-                                                  'h-9 w-9 px-0 text-danger hover:bg-danger/10 hover:text-danger',
-                                              })}
-                                              disabled={isSavingBucketEdit}
-                                              onClick={() => {
-                                                setBucketDeleteGroupId(group.id);
-                                                setBucketDeleteError('');
-                                              }}
-                                              type="button"
-                                            >
-                                              <Trash2 aria-hidden="true" className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                              className={buttonClassName({ size: 'sm', className: 'h-9 px-3 text-xs' })}
-                                              disabled={isSavingBucketEdit}
-                                              onClick={handleRenameBucket}
-                                              type="button"
-                                            >
-                                              {isSavingBucketEdit ? 'Saving...' : 'Save'}
-                                            </button>
-                                          </div>
+                                          <input
+                                            autoFocus
+                                            className="h-9 flex-1 rounded-md border border-surface-border bg-surface-strong px-3 text-sm text-foreground"
+                                            maxLength={60}
+                                            onChange={(event) => setBucketEditName(event.target.value)}
+                                            onKeyDown={(event) => {
+                                              if (event.key === 'Enter') {
+                                                event.preventDefault();
+                                                handleRenameBucket();
+                                              }
+                                              if (event.key === 'Escape') {
+                                                closeBucketRename();
+                                              }
+                                            }}
+                                            placeholder={group.name}
+                                            value={bucketEditName}
+                                          />
+                                          <button
+                                            aria-label={`Delete ${group.name}`}
+                                            className={buttonClassName({
+                                              size: 'sm',
+                                              variant: 'ghost',
+                                              className:
+                                                'h-9 w-9 px-0 text-danger hover:bg-danger/10 hover:text-danger',
+                                            })}
+                                            disabled={isSavingBucketEdit}
+                                            onClick={() => {
+                                              setBucketDeleteGroupId(group.id);
+                                              setBucketDeleteError('');
+                                            }}
+                                            type="button"
+                                          >
+                                            <Trash2 aria-hidden="true" className="h-4 w-4" />
+                                          </button>
+                                          <button
+                                            className={buttonClassName({ size: 'sm', className: 'h-9 px-3 text-xs' })}
+                                            disabled={isSavingBucketEdit}
+                                            onClick={handleRenameBucket}
+                                            type="button"
+                                          >
+                                            {isSavingBucketEdit ? 'Saving...' : 'Save'}
+                                          </button>
                                           {bucketDeleteGroupId === group.id ? (
-                                            <div className="mt-2 rounded-md border border-surface-border bg-surface-elevated/60 p-2">
-                                              <p className="text-xs text-foreground">Delete {group.name} and its bucket lists?</p>
+                                            <div className="absolute left-0 top-[calc(100%+6px)] z-30 w-[min(90vw,320px)] rounded-[var(--radius-md)] border border-surface-border bg-background p-2 shadow-lg">
+                                              <p className="text-xs text-foreground">
+                                                Delete {group.name} and its bucket lists?
+                                              </p>
                                               {bucketDeleteError ? (
                                                 <p className="mt-1 text-xs text-danger">{bucketDeleteError}</p>
                                               ) : null}
                                               <div className="mt-2 flex justify-end gap-2">
                                                 <button
-                                                  className={buttonClassName({ size: 'sm', variant: 'ghost', className: 'h-8 px-2.5 text-xs' })}
+                                                  className={buttonClassName({
+                                                    size: 'sm',
+                                                    variant: 'ghost',
+                                                    className: 'h-8 px-2.5 text-xs',
+                                                  })}
                                                   disabled={isDeletingBucket}
                                                   onClick={closeBucketDeleteDialog}
                                                   type="button"
@@ -998,9 +1001,17 @@ export function BudgetWorkspaceShell() {
                                               </div>
                                             </div>
                                           ) : null}
-                                          {bucketEditError ? <p className="mt-1 text-xs text-danger">{bucketEditError}</p> : null}
+                                          {bucketEditError ? <p className="mt-1 w-full text-xs text-danger">{bucketEditError}</p> : null}
                                         </div>
-                                      ) : null}
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          className="text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground"
+                                          onClick={() => openBucketRename(group)}
+                                        >
+                                          {group.name}
+                                        </button>
+                                      )}
                                     </div>
                                     <button
                                       className={buttonClassName({
@@ -1103,79 +1114,76 @@ export function BudgetWorkspaceShell() {
                                       >
                                         <td className="px-4 py-2 text-sm text-foreground">
                                           <div className="flex items-center gap-2">
-                                            <span className="inline-block h-4 w-4 rounded-sm border border-surface-border" />
-                                            <div className="relative flex items-center gap-1">
-                                              <span>{category.name}</span>
-                                              <button
-                                                aria-label={`Rename ${category.name}`}
-                                                className={buttonClassName({
-                                                  variant: 'ghost',
-                                                  size: 'sm',
-                                                  className: 'h-8 w-8 px-0 text-muted-foreground hover:text-foreground',
-                                                })}
-                                                onClick={(event) => {
+                                            <span className="inline-flex h-7 w-7" />
+                                            <div className="relative flex items-center gap-2">
+                                              <input
+                                                aria-label={`Select ${category.name} for editing`}
+                                                checked={categoryEditId === category.id}
+                                                className="h-4 w-4 rounded border-surface-border bg-surface-strong text-brand"
+                                                onChange={(event) => {
                                                   event.stopPropagation();
-                                                  openCategoryRename(category);
+                                                  if (event.target.checked) {
+                                                    openCategoryRename(category);
+                                                  } else {
+                                                    closeCategoryRename();
+                                                  }
                                                 }}
-                                                type="button"
-                                              >
-                                                <Pencil aria-hidden="true" className="h-4 w-4" />
-                                              </button>
+                                                onClick={(event) => event.stopPropagation()}
+                                                type="checkbox"
+                                              />
                                               {categoryEditId === category.id ? (
                                                 <div
-                                                  className="absolute left-0 top-[calc(100%+6px)] z-30 w-[min(90vw,420px)] rounded-[var(--radius-md)] border border-surface-border bg-background p-2 shadow-lg"
+                                                  className="relative flex flex-wrap items-center gap-2"
                                                   ref={categoryEditPopoverRef}
                                                 >
-                                                  <div className="flex items-center gap-2">
-                                                    <input
-                                                      autoFocus
-                                                      className="h-9 flex-1 rounded-md border border-surface-border bg-surface-strong px-3 text-sm text-foreground"
-                                                      maxLength={80}
-                                                      onChange={(event) => setCategoryEditName(event.target.value)}
-                                                      onKeyDown={(event) => {
-                                                        if (event.key === 'Enter') {
-                                                          event.preventDefault();
-                                                          handleRenameCategory();
-                                                        }
-                                                        if (event.key === 'Escape') {
-                                                          closeCategoryRename();
-                                                        }
-                                                      }}
-                                                      placeholder={`Edit ${category.name}`}
-                                                      value={categoryEditName}
-                                                    />
-                                                    <button
-                                                      aria-label={`Delete ${category.name}`}
-                                                      className={buttonClassName({
-                                                        size: 'sm',
-                                                        variant: 'ghost',
-                                                        className:
-                                                          'h-9 w-9 px-0 text-danger hover:bg-danger/10 hover:text-danger',
-                                                      })}
-                                                      disabled={isSavingCategoryEdit}
-                                                      onClick={(event) => {
-                                                        event.stopPropagation();
-                                                        setCategoryDeleteId(category.id);
-                                                        setCategoryDeleteError('');
-                                                      }}
-                                                      type="button"
-                                                    >
-                                                      <Trash2 aria-hidden="true" className="h-4 w-4" />
-                                                    </button>
-                                                    <button
-                                                      className={buttonClassName({ size: 'sm', className: 'h-9 px-3 text-xs' })}
-                                                      disabled={isSavingCategoryEdit}
-                                                      onClick={(event) => {
-                                                        event.stopPropagation();
+                                                  <input
+                                                    autoFocus
+                                                    className="h-9 flex-1 rounded-md border border-surface-border bg-surface-strong px-3 text-sm text-foreground"
+                                                    maxLength={80}
+                                                    onChange={(event) => setCategoryEditName(event.target.value)}
+                                                    onKeyDown={(event) => {
+                                                      if (event.key === 'Enter') {
+                                                        event.preventDefault();
                                                         handleRenameCategory();
-                                                      }}
-                                                      type="button"
-                                                    >
-                                                      {isSavingCategoryEdit ? 'Saving...' : 'Save'}
-                                                    </button>
-                                                  </div>
+                                                      }
+                                                      if (event.key === 'Escape') {
+                                                        closeCategoryRename();
+                                                      }
+                                                    }}
+                                                    placeholder={category.name}
+                                                    value={categoryEditName}
+                                                  />
+                                                  <button
+                                                    aria-label={`Delete ${category.name}`}
+                                                    className={buttonClassName({
+                                                      size: 'sm',
+                                                      variant: 'ghost',
+                                                      className:
+                                                        'h-9 w-9 px-0 text-danger hover:bg-danger/10 hover:text-danger',
+                                                    })}
+                                                    disabled={isSavingCategoryEdit}
+                                                    onClick={(event) => {
+                                                      event.stopPropagation();
+                                                      setCategoryDeleteId(category.id);
+                                                      setCategoryDeleteError('');
+                                                    }}
+                                                    type="button"
+                                                  >
+                                                    <Trash2 aria-hidden="true" className="h-4 w-4" />
+                                                  </button>
+                                                  <button
+                                                    className={buttonClassName({ size: 'sm', className: 'h-9 px-3 text-xs' })}
+                                                    disabled={isSavingCategoryEdit}
+                                                    onClick={(event) => {
+                                                      event.stopPropagation();
+                                                      handleRenameCategory();
+                                                    }}
+                                                    type="button"
+                                                  >
+                                                    {isSavingCategoryEdit ? 'Saving...' : 'Save'}
+                                                  </button>
                                                   {categoryDeleteId === category.id ? (
-                                                    <div className="mt-2 rounded-md border border-surface-border bg-surface-elevated/60 p-2">
+                                                    <div className="absolute left-0 top-[calc(100%+6px)] z-30 w-[min(90vw,320px)] rounded-[var(--radius-md)] border border-surface-border bg-background p-2 shadow-lg">
                                                       <p className="text-xs text-foreground">
                                                         Delete {category.name} bucket list?
                                                       </p>
@@ -1219,10 +1227,21 @@ export function BudgetWorkspaceShell() {
                                                     </div>
                                                   ) : null}
                                                   {categoryEditError ? (
-                                                    <p className="mt-1 text-xs text-danger">{categoryEditError}</p>
+                                                    <p className="mt-1 w-full text-xs text-danger">{categoryEditError}</p>
                                                   ) : null}
                                                 </div>
-                                              ) : null}
+                                              ) : (
+                                                <button
+                                                  type="button"
+                                                  className="text-left text-sm text-foreground hover:text-foreground"
+                                                  onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    openCategoryRename(category);
+                                                  }}
+                                                >
+                                                  {category.name}
+                                                </button>
+                                              )}
                                             </div>
                                           </div>
                                         </td>
