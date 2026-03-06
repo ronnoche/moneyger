@@ -2,8 +2,8 @@
 
 import { useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
-import { Fragment, useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, ChevronRight, Pencil } from 'lucide-react';
 import { MonthNavigator } from '@/components/month-navigator';
 import { Card, buttonClassName } from '@/components/ui';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-states';
@@ -81,11 +81,22 @@ export function BudgetWorkspaceShell() {
   const [newBucketName, setNewBucketName] = useState('');
   const [newBucketError, setNewBucketError] = useState('');
   const [isCreatingBucket, setCreatingBucket] = useState(false);
+  const [bucketEditGroupId, setBucketEditGroupId] = useState<string | null>(null);
+  const [bucketEditName, setBucketEditName] = useState('');
+  const [bucketEditError, setBucketEditError] = useState('');
+  const [isSavingBucketEdit, setSavingBucketEdit] = useState(false);
+  const bucketEditPopoverRef = useRef<HTMLDivElement | null>(null);
+  const categoryEditPopoverRef = useRef<HTMLDivElement | null>(null);
 
   const [categoryCreateGroupId, setCategoryCreateGroupId] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryError, setNewCategoryError] = useState('');
   const [isCreatingCategory, setCreatingCategory] = useState(false);
+  const [categoryEditId, setCategoryEditId] = useState<string | null>(null);
+  const [categoryEditGroupId, setCategoryEditGroupId] = useState<string | null>(null);
+  const [categoryEditName, setCategoryEditName] = useState('');
+  const [categoryEditError, setCategoryEditError] = useState('');
+  const [isSavingCategoryEdit, setSavingCategoryEdit] = useState(false);
   const [useMobileCategorySheet, setUseMobileCategorySheet] = useState(false);
   const [isTargetEditorOpen, setTargetEditorOpen] = useState(false);
   const [targetAmountDraft, setTargetAmountDraft] = useState('0.00');
@@ -313,6 +324,175 @@ export function BudgetWorkspaceShell() {
       setCreatingCategory(false);
     }
   };
+
+  const openCategoryRename = (category: BudgetWorkspaceCategory) => {
+    closeBucketRename();
+    setCategoryEditId(category.id);
+    setCategoryEditGroupId(category.group_id);
+    setCategoryEditName(category.name);
+    setCategoryEditError('');
+  };
+
+  const closeCategoryRename = () => {
+    setCategoryEditId(null);
+    setCategoryEditGroupId(null);
+    setCategoryEditName('');
+    setCategoryEditError('');
+    setSavingCategoryEdit(false);
+  };
+
+  const handleRenameCategory = async () => {
+    if (!data || !categoryEditId || !categoryEditGroupId) return;
+    const name = categoryEditName.trim();
+    if (!name) {
+      setCategoryEditError('Bucket list name is required.');
+      return;
+    }
+    const parentGroup = data.groups.find((group) => group.id === categoryEditGroupId);
+    if (!parentGroup) {
+      setCategoryEditError('Bucket was not found.');
+      return;
+    }
+    const duplicate = parentGroup.categories.some(
+      (category) => category.id !== categoryEditId && normalize(category.name) === normalize(name),
+    );
+    if (duplicate) {
+      setCategoryEditError('Bucket list name already exists in this bucket.');
+      return;
+    }
+
+    setSavingCategoryEdit(true);
+    setCategoryEditError('');
+    try {
+      const response = await fetch('/api/budget-workspace', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'rename_category',
+          category_id: categoryEditId,
+          name,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to rename bucket list');
+      }
+      const result = await response.json();
+      const updatedCategory = result.category as BudgetWorkspaceCategory;
+      setData((previous) => {
+        if (!previous) return previous;
+        return {
+          ...previous,
+          groups: previous.groups.map((group) => ({
+            ...group,
+            categories: group.categories.map((category) =>
+              category.id === categoryEditId ? { ...category, name: updatedCategory.name } : category,
+            ),
+          })),
+        };
+      });
+      closeCategoryRename();
+    } catch (renameError: unknown) {
+      setCategoryEditError(renameError instanceof Error ? renameError.message : 'Failed to rename bucket list');
+      setSavingCategoryEdit(false);
+    }
+  };
+
+  const openBucketRename = (group: BudgetWorkspaceGroup) => {
+    closeCategoryRename();
+    setBucketEditGroupId(group.id);
+    setBucketEditName(group.name);
+    setBucketEditError('');
+  };
+
+  const closeBucketRename = () => {
+    setBucketEditGroupId(null);
+    setBucketEditName('');
+    setBucketEditError('');
+    setSavingBucketEdit(false);
+  };
+
+  const handleRenameBucket = async () => {
+    if (!data || !bucketEditGroupId) return;
+    const name = bucketEditName.trim();
+    if (!name) {
+      setBucketEditError('Bucket name is required.');
+      return;
+    }
+    const duplicate = data.groups.some(
+      (group) => group.id !== bucketEditGroupId && normalize(group.name) === normalize(name),
+    );
+    if (duplicate) {
+      setBucketEditError('Bucket name already exists.');
+      return;
+    }
+
+    setSavingBucketEdit(true);
+    setBucketEditError('');
+    try {
+      const response = await fetch('/api/budget-workspace', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'rename_group',
+          group_id: bucketEditGroupId,
+          name,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to rename bucket');
+      }
+      const result = await response.json();
+      const updatedGroup = result.group as BudgetWorkspaceGroup;
+      setData((previous) => {
+        if (!previous) return previous;
+        return {
+          ...previous,
+          groups: previous.groups.map((group) => (group.id === bucketEditGroupId ? { ...group, name: updatedGroup.name } : group)),
+        };
+      });
+      closeBucketRename();
+    } catch (renameError: unknown) {
+      setBucketEditError(renameError instanceof Error ? renameError.message : 'Failed to rename bucket');
+      setSavingBucketEdit(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!bucketEditGroupId) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (bucketEditPopoverRef.current && !bucketEditPopoverRef.current.contains(event.target as Node)) {
+        setBucketEditGroupId(null);
+        setBucketEditName('');
+        setBucketEditError('');
+        setSavingBucketEdit(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [bucketEditGroupId]);
+
+  useEffect(() => {
+    if (!categoryEditId) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryEditPopoverRef.current && !categoryEditPopoverRef.current.contains(event.target as Node)) {
+        setCategoryEditId(null);
+        setCategoryEditGroupId(null);
+        setCategoryEditName('');
+        setCategoryEditError('');
+        setSavingCategoryEdit(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [categoryEditId]);
 
   const filteredGroups = useMemo(() => {
     if (!data) return [];
@@ -570,41 +750,90 @@ export function BudgetWorkspaceShell() {
                               <tr className="bg-muted/40">
                                 <td className="px-4 py-2">
                                   <div className="flex items-center gap-2">
-                                    <button
-                                      aria-label={isCollapsed ? `Expand ${group.name}` : `Collapse ${group.name}`}
-                                      className={buttonClassName({
-                                        variant: 'ghost',
-                                        size: 'sm',
-                                        className: 'h-7 w-7 px-0 text-muted-foreground hover:text-foreground',
-                                      })}
-                                      onClick={() =>
-                                        setCollapsedGroupIds((previous) =>
-                                          previous.includes(group.id)
-                                            ? previous.filter((id) => id !== group.id)
-                                            : [...previous, group.id],
-                                        )
-                                      }
-                                      type="button"
-                                    >
-                                      {isCollapsed ? (
-                                        <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={2.75} />
-                                      ) : (
-                                        <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={2.75} />
-                                      )}
-                                    </button>
-                                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                      {group.name}
-                                    </span>
+                                    <div className="relative flex items-center gap-1">
+                                      <button
+                                        aria-label={isCollapsed ? `Expand ${group.name}` : `Collapse ${group.name}`}
+                                        className={buttonClassName({
+                                          variant: 'ghost',
+                                          size: 'sm',
+                                          className: 'h-7 w-7 px-0 text-muted-foreground hover:text-foreground',
+                                        })}
+                                        onClick={() =>
+                                          setCollapsedGroupIds((previous) =>
+                                            previous.includes(group.id)
+                                              ? previous.filter((id) => id !== group.id)
+                                              : [...previous, group.id],
+                                          )
+                                        }
+                                        type="button"
+                                      >
+                                        {isCollapsed ? (
+                                          <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={2.75} />
+                                        ) : (
+                                          <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={2.75} />
+                                        )}
+                                      </button>
+                                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                        {group.name}
+                                      </span>
+                                      <button
+                                        aria-label={`Rename ${group.name}`}
+                                        className={buttonClassName({
+                                          variant: 'ghost',
+                                          size: 'sm',
+                                          className: 'h-8 w-8 px-0 text-muted-foreground hover:text-foreground',
+                                        })}
+                                        onClick={() => openBucketRename(group)}
+                                        type="button"
+                                      >
+                                        <Pencil aria-hidden="true" className="h-4 w-4" />
+                                      </button>
+                                      {bucketEditGroupId === group.id ? (
+                                        <div
+                                          className="absolute left-0 top-[calc(100%+6px)] z-30 w-[min(90vw,420px)] rounded-[var(--radius-md)] border border-surface-border bg-background p-2 shadow-lg"
+                                          ref={bucketEditPopoverRef}
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            <input
+                                              autoFocus
+                                              className="h-9 flex-1 rounded-md border border-surface-border bg-surface-strong px-3 text-sm text-foreground"
+                                              maxLength={60}
+                                              onChange={(event) => setBucketEditName(event.target.value)}
+                                              onKeyDown={(event) => {
+                                                if (event.key === 'Enter') {
+                                                  event.preventDefault();
+                                                  handleRenameBucket();
+                                                }
+                                                if (event.key === 'Escape') {
+                                                  closeBucketRename();
+                                                }
+                                              }}
+                                              placeholder={`Edit ${group.name}`}
+                                              value={bucketEditName}
+                                            />
+                                            <button
+                                              className={buttonClassName({ size: 'sm', className: 'h-9 px-3 text-xs' })}
+                                              disabled={isSavingBucketEdit}
+                                              onClick={handleRenameBucket}
+                                              type="button"
+                                            >
+                                              {isSavingBucketEdit ? 'Saving...' : 'Save'}
+                                            </button>
+                                          </div>
+                                          {bucketEditError ? <p className="mt-1 text-xs text-danger">{bucketEditError}</p> : null}
+                                        </div>
+                                      ) : null}
+                                    </div>
                                     <button
                                       className={buttonClassName({
                                         variant: 'secondary',
                                         size: 'sm',
-                                        className: 'ml-2 hidden h-7 px-2 text-[11px] md:inline-flex',
+                                        className: 'ml-1 hidden h-7 px-2 text-[11px] md:inline-flex',
                                       })}
                                       onClick={() => startCreateCategory(group.id, false)}
                                       type="button"
                                     >
-                                      + Add Bucket List
+                                      + Bucket List
                                     </button>
                                     <button
                                       className={buttonClassName({
@@ -697,7 +926,61 @@ export function BudgetWorkspaceShell() {
                                         <td className="px-4 py-2 text-sm text-foreground">
                                           <div className="flex items-center gap-2">
                                             <span className="inline-block h-4 w-4 rounded-sm border border-surface-border" />
-                                            <span>{category.name}</span>
+                                            <div className="relative flex items-center gap-1">
+                                              <span>{category.name}</span>
+                                              <button
+                                                aria-label={`Rename ${category.name}`}
+                                                className={buttonClassName({
+                                                  variant: 'ghost',
+                                                  size: 'sm',
+                                                  className: 'h-8 w-8 px-0 text-muted-foreground hover:text-foreground',
+                                                })}
+                                                onClick={(event) => {
+                                                  event.stopPropagation();
+                                                  openCategoryRename(category);
+                                                }}
+                                                type="button"
+                                              >
+                                                <Pencil aria-hidden="true" className="h-4 w-4" />
+                                              </button>
+                                              {categoryEditId === category.id ? (
+                                                <div
+                                                  className="absolute left-0 top-[calc(100%+6px)] z-30 w-[min(90vw,420px)] rounded-[var(--radius-md)] border border-surface-border bg-background p-2 shadow-lg"
+                                                  ref={categoryEditPopoverRef}
+                                                >
+                                                  <div className="flex items-center gap-2">
+                                                    <input
+                                                      autoFocus
+                                                      className="h-9 flex-1 rounded-md border border-surface-border bg-surface-strong px-3 text-sm text-foreground"
+                                                      maxLength={80}
+                                                      onChange={(event) => setCategoryEditName(event.target.value)}
+                                                      onKeyDown={(event) => {
+                                                        if (event.key === 'Enter') {
+                                                          event.preventDefault();
+                                                          handleRenameCategory();
+                                                        }
+                                                        if (event.key === 'Escape') {
+                                                          closeCategoryRename();
+                                                        }
+                                                      }}
+                                                      placeholder={`Edit ${category.name}`}
+                                                      value={categoryEditName}
+                                                    />
+                                                    <button
+                                                      className={buttonClassName({ size: 'sm', className: 'h-9 px-3 text-xs' })}
+                                                      disabled={isSavingCategoryEdit}
+                                                      onClick={handleRenameCategory}
+                                                      type="button"
+                                                    >
+                                                      {isSavingCategoryEdit ? 'Saving...' : 'Save'}
+                                                    </button>
+                                                  </div>
+                                                  {categoryEditError ? (
+                                                    <p className="mt-1 text-xs text-danger">{categoryEditError}</p>
+                                                  ) : null}
+                                                </div>
+                                              ) : null}
+                                            </div>
                                           </div>
                                         </td>
                                         <td className="px-2 py-2 text-right text-foreground">
@@ -1003,6 +1286,7 @@ export function BudgetWorkspaceShell() {
           </div>
         </div>
       ) : null}
+
     </div>
   );
 }

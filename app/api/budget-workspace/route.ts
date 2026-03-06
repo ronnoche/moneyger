@@ -5,6 +5,8 @@ import {
   createCategory,
   createCategoryGroup,
   getBudgetWorkspace,
+  renameCategory,
+  renameCategoryGroup,
   updateCategoryAssigned,
 } from '@/lib/services/budgetWorkspaceService';
 
@@ -35,6 +37,16 @@ export async function POST(request: Request) {
     if (body.action === 'create_category') {
       const category = await createCategory(clients.sheets, sheetId, body.group_id, body.name);
       return Response.json({ category }, { status: 201 });
+    }
+
+    if (body.action === 'rename_group') {
+      const group = await renameCategoryGroup(clients.sheets, sheetId, body.group_id, body.name);
+      return Response.json({ group });
+    }
+
+    if (body.action === 'rename_category') {
+      const category = await renameCategory(clients.sheets, sheetId, body.category_id, body.name);
+      return Response.json({ category });
     }
 
     if (body.action === 'update_assigned') {

@@ -273,6 +273,64 @@ export const createCategory = async (
   return category;
 };
 
+export const renameCategory = async (
+  sheets: sheets_v4.Sheets,
+  sheetId: string,
+  categoryId: string,
+  name: string,
+): Promise<Category> => {
+  const snapshot = await readSnapshot(sheets, sheetId);
+  const existing = snapshot.categories.find((category) => category.id === categoryId);
+  if (!existing) {
+    throw new Error('Bucket list was not found.');
+  }
+
+  const updated: Category = {
+    ...existing,
+    name,
+    updated_at: new Date().toISOString(),
+  };
+
+  await updateRow(
+    sheets,
+    sheetId,
+    SHEET_TABS.categories,
+    existing.rowNumber,
+    toRowValues(SHEET_HEADERS[SHEET_TABS.categories], updated),
+  );
+
+  return updated;
+};
+
+export const renameCategoryGroup = async (
+  sheets: sheets_v4.Sheets,
+  sheetId: string,
+  groupId: string,
+  name: string,
+): Promise<CategoryGroup> => {
+  const snapshot = await readSnapshot(sheets, sheetId);
+  const existing = snapshot.categoryGroups.find((group) => group.id === groupId);
+  if (!existing) {
+    throw new Error('Bucket was not found.');
+  }
+
+  const updated: CategoryGroup = {
+    ...existing,
+    name,
+    updated_at: new Date().toISOString(),
+  };
+
+  await updateRow(
+    sheets,
+    sheetId,
+    SHEET_TABS.categoryGroups,
+    existing.rowNumber,
+    toRowValues(SHEET_HEADERS[SHEET_TABS.categoryGroups], updated),
+  );
+
+  return updated;
+};
+
 export const updateCategoryAssigned = async (
   sheets: sheets_v4.Sheets,
   sheetId: string,
