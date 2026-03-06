@@ -4,6 +4,7 @@ import { ensureSchemaUpToDate } from '@/lib/services/metadataService';
 import {
   createCategory,
   createCategoryGroup,
+  deleteCategoryGroup,
   getBudgetWorkspace,
   renameCategory,
   renameCategoryGroup,
@@ -42,6 +43,11 @@ export async function POST(request: Request) {
     if (body.action === 'rename_group') {
       const group = await renameCategoryGroup(clients.sheets, sheetId, body.group_id, body.name);
       return Response.json({ group });
+    }
+
+    if (body.action === 'delete_group') {
+      await deleteCategoryGroup(clients.sheets, sheetId, body.group_id);
+      return Response.json({ ok: true });
     }
 
     if (body.action === 'rename_category') {

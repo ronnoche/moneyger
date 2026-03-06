@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, Pencil } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { MonthNavigator } from '@/components/month-navigator';
 import { Card, buttonClassName } from '@/components/ui';
 import { EmptyState, ErrorState, LoadingState } from '@/components/data-states';
@@ -85,6 +85,9 @@ export function BudgetWorkspaceShell() {
   const [bucketEditName, setBucketEditName] = useState('');
   const [bucketEditError, setBucketEditError] = useState('');
   const [isSavingBucketEdit, setSavingBucketEdit] = useState(false);
+  const [bucketDeleteGroupId, setBucketDeleteGroupId] = useState<string | null>(null);
+  const [bucketDeleteError, setBucketDeleteError] = useState('');
+  const [isDeletingBucket, setDeletingBucket] = useState(false);
   const bucketEditPopoverRef = useRef<HTMLDivElement | null>(null);
   const categoryEditPopoverRef = useRef<HTMLDivElement | null>(null);
 
@@ -97,6 +100,9 @@ export function BudgetWorkspaceShell() {
   const [categoryEditName, setCategoryEditName] = useState('');
   const [categoryEditError, setCategoryEditError] = useState('');
   const [isSavingCategoryEdit, setSavingCategoryEdit] = useState(false);
+  const [categoryDeleteId, setCategoryDeleteId] = useState<string | null>(null);
+  const [categoryDeleteError, setCategoryDeleteError] = useState('');
+  const [isDeletingCategory, setDeletingCategory] = useState(false);
   const [useMobileCategorySheet, setUseMobileCategorySheet] = useState(false);
   const [isTargetEditorOpen, setTargetEditorOpen] = useState(false);
   const [targetAmountDraft, setTargetAmountDraft] = useState('0.00');
@@ -331,6 +337,9 @@ export function BudgetWorkspaceShell() {
     setCategoryEditGroupId(category.group_id);
     setCategoryEditName(category.name);
     setCategoryEditError('');
+    setCategoryDeleteId(null);
+    setCategoryDeleteError('');
+    setDeletingCategory(false);
   };
 
   const closeCategoryRename = () => {
@@ -338,6 +347,9 @@ export function BudgetWorkspaceShell() {
     setCategoryEditGroupId(null);
     setCategoryEditName('');
     setCategoryEditError('');
+    setCategoryDeleteId(null);
+    setCategoryDeleteError('');
+    setDeletingCategory(false);
     setSavingCategoryEdit(false);
   };
 
@@ -404,13 +416,25 @@ export function BudgetWorkspaceShell() {
     setBucketEditGroupId(group.id);
     setBucketEditName(group.name);
     setBucketEditError('');
+    setBucketDeleteGroupId(null);
+    setBucketDeleteError('');
+    setDeletingBucket(false);
   };
 
   const closeBucketRename = () => {
     setBucketEditGroupId(null);
     setBucketEditName('');
     setBucketEditError('');
+    setBucketDeleteGroupId(null);
+    setBucketDeleteError('');
+    setDeletingBucket(false);
     setSavingBucketEdit(false);
+  };
+
+  const closeBucketDeleteDialog = () => {
+    setBucketDeleteGroupId(null);
+    setBucketDeleteError('');
+    setDeletingBucket(false);
   };
 
   const handleRenameBucket = async () => {
@@ -461,6 +485,102 @@ export function BudgetWorkspaceShell() {
     }
   };
 
+  const handleDeleteBucket = async () => {
+    if (!data || !bucketDeleteGroupId) return;
+    setDeletingBucket(true);
+    setBucketDeleteError('');
+    try {
+      const response = await fetch('/api/budget-workspace', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'delete_group',
+          group_id: bucketDeleteGroupId,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete bucket');
+      }
+
+      const deletedCategoryIds = new Set(
+        data.groups
+          .find((group) => group.id === bucketDeleteGroupId)
+          ?.categories.map((category) => category.id) ?? [],
+      );
+
+      setData((previous) => {
+        if (!previous) return previous;
+        return {
+          ...previous,
+          groups: previous.groups.filter((group) => group.id !== bucketDeleteGroupId),
+        };
+      });
+      setCollapsedGroupIds((previous) => previous.filter((id) => id !== bucketDeleteGroupId));
+      setAssignedDrafts((previous) => {
+        const next = { ...previous };
+        deletedCategoryIds.forEach((categoryId) => {
+          delete next[categoryId];
+        });
+        return next;
+      });
+      setSelectedCategoryId((previousSelectedCategoryId) => {
+        if (!previousSelectedCategoryId) return previousSelectedCategoryId;
+        if (!deletedCategoryIds.has(previousSelectedCategoryId)) return previousSelectedCategoryId;
+        const remainingGroups = data.groups.filter((group) => group.id !== bucketDeleteGroupId);
+        return remainingGroups[0]?.categories[0]?.id ?? null;
+      });
+      closeBucketRename();
+      closeBucketDeleteDialog();
+    } catch (deleteError: unknown) {
+      setBucketDeleteError(deleteError instanceof Error ? deleteError.message : 'Failed to delete bucket');
+      setDeletingBucket(false);
+    }
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!data || !categoryDeleteId) return;
+    setDeletingCategory(true);
+    setCategoryDeleteError('');
+    try {
+      const response = await fetch(`/api/budgets/${categoryDeleteId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete bucket list');
+      }
+
+      setData((previous) => {
+        if (!previous) return previous;
+        return {
+          ...previous,
+          groups: previous.groups.map((group) => ({
+            ...group,
+            categories: group.categories.filter((category) => category.id !== categoryDeleteId),
+          })),
+        };
+      });
+      setAssignedDrafts((previous) => {
+        const next = { ...previous };
+        delete next[categoryDeleteId];
+        return next;
+      });
+      setSelectedCategoryId((previousSelectedCategoryId) => {
+        if (previousSelectedCategoryId !== categoryDeleteId) return previousSelectedCategoryId;
+        const fallbackCategoryId =
+          data.groups
+            .flatMap((group) => group.categories)
+            .find((category) => category.id !== categoryDeleteId)?.id ?? null;
+        return fallbackCategoryId;
+      });
+      closeCategoryRename();
+    } catch (deleteError: unknown) {
+      setCategoryDeleteError(deleteError instanceof Error ? deleteError.message : 'Failed to delete bucket list');
+      setDeletingCategory(false);
+    }
+  };
+
   useEffect(() => {
     if (!bucketEditGroupId) return;
     const handleClickOutside = (event: MouseEvent) => {
@@ -468,6 +588,9 @@ export function BudgetWorkspaceShell() {
         setBucketEditGroupId(null);
         setBucketEditName('');
         setBucketEditError('');
+        setBucketDeleteGroupId(null);
+        setBucketDeleteError('');
+        setDeletingBucket(false);
         setSavingBucketEdit(false);
       }
     };
@@ -485,6 +608,9 @@ export function BudgetWorkspaceShell() {
         setCategoryEditGroupId(null);
         setCategoryEditName('');
         setCategoryEditError('');
+        setCategoryDeleteId(null);
+        setCategoryDeleteError('');
+        setDeletingCategory(false);
         setSavingCategoryEdit(false);
       }
     };
@@ -650,7 +776,12 @@ export function BudgetWorkspaceShell() {
         </Card>
         <Card className="flex flex-col justify-center bg-brand-soft px-4 py-2.5 text-right" dense>
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{summaryCard.title}</p>
-          <p className={`text-xl font-semibold md:text-2xl ${summaryCard.tone}`}>{summaryCard.value}</p>
+          <div className="flex items-center justify-end gap-2">
+            <p className={`text-xl font-semibold md:text-2xl ${summaryCard.tone}`}>{summaryCard.value}</p>
+            {summaryCard.title === 'All are assigned' ? (
+              <CheckCircle2 aria-hidden="true" className="h-6 w-6 text-emerald-500 md:h-7 md:w-7" strokeWidth={2.25} />
+            ) : null}
+          </div>
         </Card>
       </div>
 
@@ -731,7 +862,7 @@ export function BudgetWorkspaceShell() {
                       <tr className="border-b border-surface-border text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         <th className="px-4 py-2">Buckets</th>
                         <th className="px-2 py-2 text-right">Allocated</th>
-                        <th className="px-2 py-2 text-right">Spent</th>
+                        <th className="px-2 py-2 text-right">Transactions</th>
                         <th className="px-2 py-2 text-right">Balance</th>
                       </tr>
                     </thead>
@@ -812,6 +943,23 @@ export function BudgetWorkspaceShell() {
                                               value={bucketEditName}
                                             />
                                             <button
+                                              aria-label={`Delete ${group.name}`}
+                                              className={buttonClassName({
+                                                size: 'sm',
+                                                variant: 'ghost',
+                                                className:
+                                                  'h-9 w-9 px-0 text-danger hover:bg-danger/10 hover:text-danger',
+                                              })}
+                                              disabled={isSavingBucketEdit}
+                                              onClick={() => {
+                                                setBucketDeleteGroupId(group.id);
+                                                setBucketDeleteError('');
+                                              }}
+                                              type="button"
+                                            >
+                                              <Trash2 aria-hidden="true" className="h-4 w-4" />
+                                            </button>
+                                            <button
                                               className={buttonClassName({ size: 'sm', className: 'h-9 px-3 text-xs' })}
                                               disabled={isSavingBucketEdit}
                                               onClick={handleRenameBucket}
@@ -820,6 +968,36 @@ export function BudgetWorkspaceShell() {
                                               {isSavingBucketEdit ? 'Saving...' : 'Save'}
                                             </button>
                                           </div>
+                                          {bucketDeleteGroupId === group.id ? (
+                                            <div className="mt-2 rounded-md border border-surface-border bg-surface-elevated/60 p-2">
+                                              <p className="text-xs text-foreground">Delete {group.name} and its bucket lists?</p>
+                                              {bucketDeleteError ? (
+                                                <p className="mt-1 text-xs text-danger">{bucketDeleteError}</p>
+                                              ) : null}
+                                              <div className="mt-2 flex justify-end gap-2">
+                                                <button
+                                                  className={buttonClassName({ size: 'sm', variant: 'ghost', className: 'h-8 px-2.5 text-xs' })}
+                                                  disabled={isDeletingBucket}
+                                                  onClick={closeBucketDeleteDialog}
+                                                  type="button"
+                                                >
+                                                  Cancel
+                                                </button>
+                                                <button
+                                                  className={buttonClassName({
+                                                    size: 'sm',
+                                                    variant: 'danger',
+                                                    className: 'h-8 px-2.5 text-xs',
+                                                  })}
+                                                  disabled={isDeletingBucket}
+                                                  onClick={handleDeleteBucket}
+                                                  type="button"
+                                                >
+                                                  {isDeletingBucket ? 'Deleting...' : 'Delete'}
+                                                </button>
+                                              </div>
+                                            </div>
+                                          ) : null}
                                           {bucketEditError ? <p className="mt-1 text-xs text-danger">{bucketEditError}</p> : null}
                                         </div>
                                       ) : null}
@@ -967,14 +1145,79 @@ export function BudgetWorkspaceShell() {
                                                       value={categoryEditName}
                                                     />
                                                     <button
+                                                      aria-label={`Delete ${category.name}`}
+                                                      className={buttonClassName({
+                                                        size: 'sm',
+                                                        variant: 'ghost',
+                                                        className:
+                                                          'h-9 w-9 px-0 text-danger hover:bg-danger/10 hover:text-danger',
+                                                      })}
+                                                      disabled={isSavingCategoryEdit}
+                                                      onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        setCategoryDeleteId(category.id);
+                                                        setCategoryDeleteError('');
+                                                      }}
+                                                      type="button"
+                                                    >
+                                                      <Trash2 aria-hidden="true" className="h-4 w-4" />
+                                                    </button>
+                                                    <button
                                                       className={buttonClassName({ size: 'sm', className: 'h-9 px-3 text-xs' })}
                                                       disabled={isSavingCategoryEdit}
-                                                      onClick={handleRenameCategory}
+                                                      onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        handleRenameCategory();
+                                                      }}
                                                       type="button"
                                                     >
                                                       {isSavingCategoryEdit ? 'Saving...' : 'Save'}
                                                     </button>
                                                   </div>
+                                                  {categoryDeleteId === category.id ? (
+                                                    <div className="mt-2 rounded-md border border-surface-border bg-surface-elevated/60 p-2">
+                                                      <p className="text-xs text-foreground">
+                                                        Delete {category.name} bucket list?
+                                                      </p>
+                                                      {categoryDeleteError ? (
+                                                        <p className="mt-1 text-xs text-danger">{categoryDeleteError}</p>
+                                                      ) : null}
+                                                      <div className="mt-2 flex justify-end gap-2">
+                                                        <button
+                                                          className={buttonClassName({
+                                                            size: 'sm',
+                                                            variant: 'ghost',
+                                                            className: 'h-8 px-2.5 text-xs',
+                                                          })}
+                                                          disabled={isDeletingCategory}
+                                                          onClick={(event) => {
+                                                            event.stopPropagation();
+                                                            setCategoryDeleteId(null);
+                                                            setCategoryDeleteError('');
+                                                            setDeletingCategory(false);
+                                                          }}
+                                                          type="button"
+                                                        >
+                                                          Cancel
+                                                        </button>
+                                                        <button
+                                                          className={buttonClassName({
+                                                            size: 'sm',
+                                                            variant: 'danger',
+                                                            className: 'h-8 px-2.5 text-xs',
+                                                          })}
+                                                          disabled={isDeletingCategory}
+                                                          onClick={(event) => {
+                                                            event.stopPropagation();
+                                                            handleDeleteCategory();
+                                                          }}
+                                                          type="button"
+                                                        >
+                                                          {isDeletingCategory ? 'Deleting...' : 'Delete'}
+                                                        </button>
+                                                      </div>
+                                                    </div>
+                                                  ) : null}
                                                   {categoryEditError ? (
                                                     <p className="mt-1 text-xs text-danger">{categoryEditError}</p>
                                                   ) : null}

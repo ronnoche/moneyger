@@ -12,7 +12,7 @@ import { buildAvailableFromAssignments } from '@/lib/domain/metrics';
 import { SHEET_HEADERS, SHEET_TABS } from '@/lib/google/schema';
 import { readSnapshot } from '@/lib/google/sheets-store';
 import { appendRow, updateRow } from '@/lib/google/client';
-import { nextId, toRowValues } from '@/lib/services/helpers';
+import { deleteEntityRow, nextId, toRowValues } from '@/lib/services/helpers';
 
 export interface BudgetWorkspaceCategory {
   id: string;
@@ -329,6 +329,39 @@ export const renameCategoryGroup = async (
   );
 
   return updated;
+};
+
+export const deleteCategoryGroup = async (
+  sheets: sheets_v4.Sheets,
+  sheetId: string,
+  groupId: string,
+): Promise<void> => {
+  const snapshot = await readSnapshot(sheets, sheetId);
+  const group = snapshot.categoryGroups.find((item) => item.id === groupId);
+  if (!group) {
+    throw new Error('Bucket was not found.');
+  }
+
+  const categories = snapshot.categories.filter((category) => category.group_id === groupId);
+  const categoryIds = new Set(categories.map((category) => category.id));
+  const assignments = snapshot.categoryAssignments.filter((assignment) => categoryIds.has(assignment.category_id));
+  const goals = snapshot.categoryGoals.filter((goal) => categoryIds.has(goal.category_id));
+  const transactions = snapshot.transactions.filter((transaction) => categoryIds.has(transaction.bucket_list_id));
+
+  for (const transaction of transactions.sort((a, b) => b.rowNumber - a.rowNumber)) {
+    await deleteEntityRow(sheets, sheetId, SHEET_TABS.transactions, transaction);
+  }
+  for (const assignment of assignments.sort((a, b) => b.rowNumber - a.rowNumber)) {
+    await deleteEntityRow(sheets, sheetId, SHEET_TABS.categoryAssignments, assignment);
+  }
+  for (const goal of goals.sort((a, b) => b.rowNumber - a.rowNumber)) {
+    await deleteEntityRow(sheets, sheetId, SHEET_TABS.categoryGoals, goal);
+  }
+  for (const category of categories.sort((a, b) => b.rowNumber - a.rowNumber)) {
+    await deleteEntityRow(sheets, sheetId, SHEET_TABS.categories, category);
+  }
+
+  await deleteEntityRow(sheets, sheetId, SHEET_TABS.categoryGroups, group);
 };
 
 export const updateCategoryAssigned = async (
