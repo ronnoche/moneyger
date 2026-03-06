@@ -317,10 +317,21 @@ export function BudgetWorkspaceShell() {
   const filteredGroups = useMemo(() => {
     if (!data) return [];
     return data.groups
-      .map((group) => ({
-        ...group,
-        categories: group.categories.filter((category) => categoryMatchesFilter(category, activeFilter)),
-      }))
+      .map((group) => {
+        const totals = group.categories.reduce(
+          (result, category) => ({
+            allocated: result.allocated + category.assigned,
+            spent: result.spent + category.activity,
+            balance: result.balance + category.available,
+          }),
+          { allocated: 0, spent: 0, balance: 0 },
+        );
+        return {
+          ...group,
+          categories: group.categories.filter((category) => categoryMatchesFilter(category, activeFilter)),
+          totals,
+        };
+      })
       .filter((group) => group.categories.length > 0 || activeFilter === 'all');
   }, [activeFilter, data]);
 
@@ -552,7 +563,7 @@ export function BudgetWorkspaceShell() {
                           </td>
                         </tr>
                       ) : (
-                        filteredGroups.map((group: BudgetWorkspaceGroup) => {
+                        filteredGroups.map((group) => {
                           const isCollapsed = collapsedGroupIds.includes(group.id);
                           return (
                             <Fragment key={group.id}>
@@ -608,7 +619,15 @@ export function BudgetWorkspaceShell() {
                                     </button>
                                   </div>
                                 </td>
-                                <td colSpan={3} />
+                                <td className="px-2 py-2 text-right text-foreground">
+                                  {formatCurrency(group.totals.allocated)}
+                                </td>
+                                <td className="px-2 py-2 text-right text-foreground">
+                                  {formatCurrency(group.totals.spent)}
+                                </td>
+                                <td className="px-2 py-2 text-right text-foreground">
+                                  {formatCurrency(group.totals.balance)}
+                                </td>
                               </tr>
 
                               {categoryCreateGroupId === group.id && !useMobileCategorySheet ? (
